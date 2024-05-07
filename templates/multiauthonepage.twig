@@ -1,0 +1,44 @@
+{% set pagetitle = 'Login with YubiKey'|trans %}
+{% extends "base.twig" %}
+
+{% block preload %}
+    <link rel="stylesheet" href="{{ asset('css/multiauthonepage.css', 'multiauthonepage') }}">
+{% endblock %}
+
+{% block postload %}
+    <script src="{{ asset('js/autofocus.js', 'multiauthonepage') }}"></script>
+{% endblock %}
+
+{% block content %}
+    {%- if not isProduction %}
+
+    <div class="message-box warning">
+      {% trans %}You are now accessing a pre-production system. This authentication setup is for testing and pre-production verification only. If someone sent you a link that pointed you here, and you are not <i>a tester</i> you probably got the wrong link, and should <b>not be here</b>.{% endtrans %}
+    </div>
+    {% endif -%}
+
+    {% if errorCode != null %}
+    <div class="message-box error">
+        <h3>{{ errorTitle }}</h3>
+        <p>{{ errorDesc }}</p>
+    </div>
+    {% endif %}
+
+    <h2>{{ pagetitle }}</h2>
+    <form action="?" method="post" name="f">
+        <input name="username" type="text"/>
+        <input name="password" type="password"/>
+        <input name="authsource" type="authsource1"/>
+    {% for key, value in stateParams %}
+        <input type="hidden" name="{{ key|escape('html') }}" value="{{ value|escape('html') }}">
+    {% endfor %}
+    </form>
+    form 2
+    <form action="?" method="post" name="f">
+        <input name="authsource" type="authsource2"/>
+    {% for key, value in stateParams %}
+        <input type="hidden" name="{{ key|escape('html') }}" value="{{ value|escape('html') }}">
+    {% endfor %}
+    </form>
+
+{% endblock %}

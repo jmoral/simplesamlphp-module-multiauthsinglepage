@@ -1,0 +1,8 @@
+---
+
+multiauthsinglepage-login:
+  path: /login
+  defaults: {
+    _controller: 'SimpleSAML\Module\multiauthsinglepage\Controller\Multiauthsinglepage::main'
+  }
+  methods: [GET, POST]

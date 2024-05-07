@@ -1,0 +1,38 @@
+{
+    "name": "jmoral/simplesamlphp-module-multiauthsinglepage",
+    "description": "A module that can authenticate in a single whith multiple authsources",
+    "type": "simplesamlphp-module",
+    "license": "LGPL-2.1-or-later",
+    "authors": [
+        {
+            "name": "jmoral",
+            "email": "jmoral@ujaen.es"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "SimpleSAML\\Module\\multiauthsinglepage\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\SimpleSAML\\Module\\multiauthsinglepage\\": "tests/"
+        }
+    },
+    "require": {
+        "php": ">=8.1",
+        "simplesamlphp/composer-module-installer": "^1.3",
+        "simplesamlphp/assert": "^1.1",
+        "simplesamlphp/simplesamlphp": "^2.2"
+    },
+    "require-dev": {
+        "simplesamlphp/simplesamlphp-test-framework": "^1.6"
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/package-versions-deprecated": true,
+            "simplesamlphp/composer-module-installer": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
