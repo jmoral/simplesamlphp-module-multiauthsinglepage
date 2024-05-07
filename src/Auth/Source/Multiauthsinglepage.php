@@ -97,13 +97,16 @@ class Multiauthsinglepage extends Auth\Source
         assert(false);
     }
 
-    public static function handleLoginPass(LdapSinglePage $source, array $state, $username, $pass)
+    public static function handleLoginPass(Ldap $source, array $state, $username, $pass)
     {
         if (is_null($state)) {
             throw new Error\NoState();
         }
-
-        $source->loginSinglePage($username, $pass);
+        $class = new \ReflectionClass('Ldap');
+        $myProtectedMethod = $class->getMethod('login');
+        $myProtectedMethod->setAccessible(true);
+        $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
+        //$source->login($username, $pass);
         Auth\Source::completeAuth($state);
         assert(false);
     }
