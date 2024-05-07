@@ -8,6 +8,7 @@ use SimpleSAML\Auth;
 use SimpleSAML\Auth\Source;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error;
+use SimpleSAML\Module\core\Auth\UserPassBase;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage as SourceMultiauthsinglepage;
 use SimpleSAML\Session;
 use SimpleSAML\XHTML\Template;
@@ -60,20 +61,26 @@ class SinglepageController
      */
     public function main(Request $request): Template
     {
-        if (!$request->query->has('AuthState')) {
+        if (!$request->request->has('AuthState')) {
             throw new Error\BadRequest('Missing AuthState parameter.');
         }
-        $stateId = $request->query->all()['AuthState'];
+        $stateId = $request->request->all()['AuthState'];
         $state = $this->authState::loadState($stateId, SourceMultiauthsinglepage::STAGEID);
         $t = new Template($this->config, 'multiauthsinglepage:multiauthonepage.twig');
-        $authsourceId = $request->query->has('authsource') ? $request->query->all()['authsource'] : null;
+        $authsourceId = $request->request->has('authsource') ? $request->request->all()['authsource'] : null;
         $errorTitle = '';
         $errorDesc = '';
         if ($authsourceId !== null) {
             // attempt to log in
             try {
                 $as = Source::getById($authsourceId);
-                SourceMultiauthsinglepage::handleLogin($as, $state);
+                if (is_subclass_of($as, UserPassBase::class, false) ) {
+                    $username = $request->request->has('username') ? $request->request->all()['username'] : null;
+                    $pass = $request->request->has('password') ? $request->request->all()['password'] : null;
+                    SourceMultiauthsinglepage::handleLoginPass($as, $state, $username, $pass);
+                } else {
+                    SourceMultiauthsinglepage::handleLogin($as, $state);
+                }
             } catch (\SimpleSAML\Error\Exception $e) {
                 $errorTitle = "Auth error";
                 $errorDesc = $e->getMessage();

@@ -9,6 +9,7 @@ use SimpleSAML\Assert\Assert;
 use SimpleSAML\Auth;
 use SimpleSAML\Error;
 use SimpleSAML\Module;
+use SimpleSAML\Module\core\Auth\UserPassBase;
 use SimpleSAML\Utils\HTTP;
 
 class Multiauthsinglepage extends Auth\Source
@@ -92,6 +93,17 @@ class Multiauthsinglepage extends Auth\Source
         }
 
         $source->authenticate($state);
+        Auth\Source::completeAuth($state);
+        assert(false);
+    }
+
+    public static function handleLoginPass(UserPassBase $source, array $state, $username, $pass)
+    {
+        if (is_null($state)) {
+            throw new Error\NoState();
+        }
+
+        $source->login($username, $pass);
         Auth\Source::completeAuth($state);
         assert(false);
     }
