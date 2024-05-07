@@ -61,13 +61,13 @@ class SinglepageController
      */
     public function main(Request $request): Template
     {
-        if (!$request->request->has('AuthState')) {
+        if (!$request->request->has('AuthState') && !$request->query->has('AuthState')) {
             throw new Error\BadRequest('Missing AuthState parameter.');
         }
-        $stateId = $request->request->all()['AuthState'];
+        $stateId = $request->get('AuthState');
         $state = $this->authState::loadState($stateId, SourceMultiauthsinglepage::STAGEID);
         $t = new Template($this->config, 'multiauthsinglepage:multiauthonepage.twig');
-        $authsourceId = $request->request->has('authsource') ? $request->request->all()['authsource'] : null;
+        $authsourceId = $request->get('authsource');
         $errorTitle = '';
         $errorDesc = '';
         if ($authsourceId !== null) {
@@ -75,8 +75,8 @@ class SinglepageController
             try {
                 $as = Source::getById($authsourceId);
                 if (is_subclass_of($as, UserPassBase::class, false) ) {
-                    $username = $request->request->has('username') ? $request->request->all()['username'] : null;
-                    $pass = $request->request->has('password') ? $request->request->all()['password'] : null;
+                    $username = $request->get('username');
+                    $pass = $request->get('password');
                     SourceMultiauthsinglepage::handleLoginPass($as, $state, $username, $pass);
                 } else {
                     SourceMultiauthsinglepage::handleLogin($as, $state);
