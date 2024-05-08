@@ -115,10 +115,17 @@ class Multiauthsinglepage extends Auth\Source
      * @param \SimpleSAML\Auth\Source $as
      * @param array $state
      */
-    public static function doAuthentication(Auth\Source $as, array $state): void
+    public static function doAuthentication(Auth\Source $as, array $state, string $username, string $pass): void
     {
         try {
-            $as->authenticate($state);
+            if ($as instanceof Ldap) {
+                $class = new \ReflectionClass('Ldap');
+                $myProtectedMethod = $class->getMethod('login');
+                $myProtectedMethod->setAccessible(true);
+                $result = $myProtectedMethod->invokeArgs($as, [$username, $pass]);
+            } else {
+                $as->authenticate($state);
+            }
             return;
         } catch (Error\Exception $e) {
             Auth\State::throwException($state, $e);
