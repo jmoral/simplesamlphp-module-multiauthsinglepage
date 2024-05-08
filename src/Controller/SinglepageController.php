@@ -75,7 +75,7 @@ class SinglepageController
             // attempt to log in
             try {
                 $as = Source::getById($authsourceId);
-                Logger::debug("SinglepageController class get_class($as)");
+                Logger::debug("SinglepageController class " . get_class($as));
                 if (is_subclass_of($as, Ldap::class, false)) {
                     $username = $request->get('username');
                     Logger::debug("SinglepageController - username $username");
