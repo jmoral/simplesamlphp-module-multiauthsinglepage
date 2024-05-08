@@ -8,9 +8,8 @@ use SimpleSAML\Auth;
 use SimpleSAML\Auth\Source;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error;
-use SimpleSAML\Module\core\Auth\UserPassBase;
+use SimpleSAML\Logger;
 use SimpleSAML\Module\ldap\Auth\Source\Ldap;
-use SimpleSAML\Module\multiauthsinglepage\Auth\Source\LdapSinglePage;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage as SourceMultiauthsinglepage;
 use SimpleSAML\Session;
 use SimpleSAML\XHTML\Template;
@@ -76,8 +75,9 @@ class SinglepageController
             // attempt to log in
             try {
                 $as = Source::getById($authsourceId);
-                if (is_subclass_of($as, Ldap::class, false) ) {
+                if (is_subclass_of($as, Ldap::class, false)) {
                     $username = $request->get('username');
+                    Logger::debug("SinglepageController - username $username");
                     $pass = $request->get('password');
                     SourceMultiauthsinglepage::handleLoginPass($as, $state, $username, $pass);
                 } else {

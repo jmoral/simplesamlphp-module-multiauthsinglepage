@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace SimpleSAML\Module\multiauthsinglepage\Auth\Source;
 
-use SimpleSAML\Logger;
 use SimpleSAML\Module\ldap\Auth\Source\Ldap;
 
 class LdapSinglePage extends Ldap
