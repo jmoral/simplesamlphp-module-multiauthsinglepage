@@ -76,7 +76,7 @@ class SinglepageController
             try {
                 $as = Source::getById($authsourceId);
                 Logger::debug("SinglepageController class " . get_class($as));
-                if (is_subclass_of($as, Ldap::class, false)) {
+                if ($as instanceof Ldap) {
                     $username = $request->get('username');
                     Logger::debug("SinglepageController - username $username");
                     $pass = $request->get('password');
