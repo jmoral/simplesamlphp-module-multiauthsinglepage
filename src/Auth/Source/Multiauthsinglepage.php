@@ -106,6 +106,7 @@ class Multiauthsinglepage extends Auth\Source
         $myProtectedMethod = $class->getMethod('login');
         $myProtectedMethod->setAccessible(true);
         $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
+        $state['Attributes'] = $result;
         //$source->login($username, $pass);
         Auth\Source::completeAuth($state);
         assert(false);
