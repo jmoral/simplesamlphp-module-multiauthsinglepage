@@ -11,6 +11,7 @@ use SimpleSAML\Error;
 use SimpleSAML\Logger;
 use SimpleSAML\Module;
 use SimpleSAML\Module\ldap\Auth\Source\Ldap;
+use SimpleSAML\Session;
 use SimpleSAML\Utils\HTTP;
 
 class Multiauthsinglepage extends Auth\Source
@@ -85,7 +86,7 @@ class Multiauthsinglepage extends Auth\Source
      * exception.
      *
      * @param string $authStateId  The identifier of the authentication state.
-     * @param Auth/Source $source the authentication source.
+     * @param \SimpleSAML\Auth\Source $source the authentication source.
      * @return string|void Error code in the case of an error.
      */
     public static function handleLogin(Auth\Source $source, array $state)
@@ -95,6 +96,7 @@ class Multiauthsinglepage extends Auth\Source
             throw new Error\NoState();
         }
 
+        self::setSessionSource($source, $state);
         $source->authenticate($state);
         Auth\Source::completeAuth($state);
         assert(false);
@@ -106,6 +108,7 @@ class Multiauthsinglepage extends Auth\Source
         if (is_null($state)) {
             throw new Error\NoState();
         }
+        self::setSessionSource($source, $state);
         $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');
         $myProtectedMethod = $class->getMethod('login');
         $myProtectedMethod->setAccessible(true);
@@ -116,35 +119,43 @@ class Multiauthsinglepage extends Auth\Source
         assert(false);
     }
 
-    /**
-     * @param \SimpleSAML\Auth\Source $as
-     * @param array $state
-     */
-    public static function doAuthentication(Auth\Source $as, array $state, string $username, string $pass): void
-    {
-        Logger::debug("Multiauthsinglepage - doAuthentication");
-        try {
-            if ($as instanceof Ldap) {
-                $class = new \ReflectionClass('Ldap');
-                $myProtectedMethod = $class->getMethod('login');
-                $myProtectedMethod->setAccessible(true);
-                $result = $myProtectedMethod->invokeArgs($as, [$username, $pass]);
-            } else {
-                $as->authenticate($state);
-            }
-            return;
-        } catch (Error\Exception $e) {
-            Auth\State::throwException($state, $e);
-        } catch (Exception $e) {
-            $e = new Error\UnserializableException($e);
-            Auth\State::throwException($state, $e);
-        }
-
-        parent::completeAuth($state);
-    }
-
     public static function loginCompleted(array $state): void
     {
         Logger::debug("Multiauthsinglepage - loginCompleted");
+    }
+
+    public static function setSessionSource(Auth\Source $source, array $state)
+    {
+        // Save the selected authentication source for the logout process.
+        $session = Session::getSessionFromRequest();
+        $session->setData(
+            self::SESSION_SOURCE,
+            $state[self::AUTHID],
+            $source->getAuthId(),
+            Session::DATA_TIMEOUT_SESSION_END
+        );
+    }
+
+    /**
+     * Log out from this authentication source.
+     *
+     * This method retrieves the authentication source used for this
+     * session and then call the logout method on it.
+     *
+     * @param array &$state Information about the current logout operation.
+     */
+    public function logout(array &$state): void
+    {
+        // Get the source that was used to authenticate
+        $session = Session::getSessionFromRequest();
+        $authId = $session->getData(self::SESSION_SOURCE, $this->authId);
+
+        $source = Auth\Source::getById($authId);
+        if ($source === null) {
+            throw new Exception('Invalid authentication source during logout: ' . $authId);
+        }
+
+        // Then, do the logout on it
+        return $source->logout($state);
     }
 }
