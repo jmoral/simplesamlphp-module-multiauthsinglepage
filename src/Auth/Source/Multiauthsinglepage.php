@@ -156,6 +156,6 @@ class Multiauthsinglepage extends Auth\Source
         }
 
         // Then, do the logout on it
-        return $source->logout($state);
+        $source->logout($state);
     }
 }
