@@ -8,6 +8,7 @@ use Exception;
 use SimpleSAML\Assert\Assert;
 use SimpleSAML\Auth;
 use SimpleSAML\Error;
+use SimpleSAML\Logger;
 use SimpleSAML\Module;
 use SimpleSAML\Module\ldap\Auth\Source\Ldap;
 use SimpleSAML\Utils\HTTP;
@@ -65,6 +66,7 @@ class Multiauthsinglepage extends Auth\Source
      */
     public function authenticate(array &$state): void
     {
+        Logger::debug("Multiauthsinglepage - authenticate");
         // We are going to need the authId in order to retrieve this authentication source later
         $state[self::AUTHID] = $this->authId;
 
@@ -88,6 +90,7 @@ class Multiauthsinglepage extends Auth\Source
      */
     public static function handleLogin(Auth\Source $source, array $state)
     {
+        Logger::debug("Multiauthsinglepage - handleLogin");
         if (is_null($state)) {
             throw new Error\NoState();
         }
@@ -99,6 +102,7 @@ class Multiauthsinglepage extends Auth\Source
 
     public static function handleLoginPass(Ldap $source, array $state, $username, $pass)
     {
+        Logger::debug("Multiauthsinglepage - handleLoginPass");
         if (is_null($state)) {
             throw new Error\NoState();
         }
@@ -118,6 +122,7 @@ class Multiauthsinglepage extends Auth\Source
      */
     public static function doAuthentication(Auth\Source $as, array $state, string $username, string $pass): void
     {
+        Logger::debug("Multiauthsinglepage - doAuthentication");
         try {
             if ($as instanceof Ldap) {
                 $class = new \ReflectionClass('Ldap');
@@ -140,6 +145,6 @@ class Multiauthsinglepage extends Auth\Source
 
     public static function loginCompleted(array $state): void
     {
-        //empty
+        Logger::debug("Multiauthsinglepage - loginCompleted");
     }
 }
