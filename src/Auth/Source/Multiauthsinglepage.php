@@ -108,7 +108,7 @@ class Multiauthsinglepage extends Auth\Source
         if (is_null($state)) {
             throw new Error\NoState();
         }
-
+        self::setSessionSource($source, $state);
         $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');
         $myProtectedMethod = $class->getMethod('login');
         $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
