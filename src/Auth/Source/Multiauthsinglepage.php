@@ -10,7 +10,6 @@ use SimpleSAML\Auth;
 use SimpleSAML\Error;
 use SimpleSAML\Logger;
 use SimpleSAML\Module;
-use SimpleSAML\Module\ldap\Auth\Source\Ldap;
 use SimpleSAML\Session;
 use SimpleSAML\Utils\HTTP;
 
@@ -102,19 +101,16 @@ class Multiauthsinglepage extends Auth\Source
         assert(false);
     }
 
-    public static function handleLoginPass(Ldap $source, array $state, $username, $pass)
+    public static function handleLoginPass(LdapSinglePage $source, array $state, $username, $pass)
     {
         Logger::debug("Multiauthsinglepage - handleLoginPass");
         if (is_null($state)) {
             throw new Error\NoState();
         }
         self::setSessionSource($source, $state);
-        $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');
-        $myProtectedMethod = $class->getMethod('login');
-        $myProtectedMethod->setAccessible(true);
-        $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
+
+        $result = $source->loginSinglePage($username, $pass);
         $state['Attributes'] = $result;
-        //$source->login($username, $pass);
         Auth\Source::completeAuth($state);
         assert(false);
     }
@@ -152,7 +148,7 @@ class Multiauthsinglepage extends Auth\Source
 
         $source = Auth\Source::getById($authId);
         if ($source === null) {
-            throw new Exception('Invalid authentication source during logout: ' . $authId);
+            throw new Error\Exception('Invalid authentication source during logout: ' . $authId);
         }
 
         // Then, do the logout on it
