@@ -10,6 +10,7 @@ use SimpleSAML\Auth;
 use SimpleSAML\Error;
 use SimpleSAML\Logger;
 use SimpleSAML\Module;
+use SimpleSAML\Module\ldap\Auth\Source\Ldap;
 use SimpleSAML\Session;
 use SimpleSAML\Utils\HTTP;
 
@@ -101,15 +102,17 @@ class Multiauthsinglepage extends Auth\Source
         assert(false);
     }
 
-    public static function handleLoginPass(LdapSinglePage $source, array $state, $username, $pass)
+    public static function handleLoginPass(Ldap $source, array $state, $username, $pass)
     {
         Logger::debug("Multiauthsinglepage - handleLoginPass");
         if (is_null($state)) {
             throw new Error\NoState();
         }
-        self::setSessionSource($source, $state);
 
-        $result = $source->loginSinglePage($username, $pass);
+        $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');
+        $myProtectedMethod = $class->getMethod('login');
+        $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
+
         $state['Attributes'] = $result;
         Auth\Source::completeAuth($state);
         assert(false);
