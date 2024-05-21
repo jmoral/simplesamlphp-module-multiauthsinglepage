@@ -13,8 +13,9 @@ use SimpleSAML\Module;
 use SimpleSAML\Module\ldap\Auth\Source\Ldap;
 use SimpleSAML\Session;
 use SimpleSAML\Utils\HTTP;
+use SimpleSAML\Module\saml\Auth\Source\SP;
 
-class Multiauthsinglepage extends Auth\Source
+class Multiauthsinglepage extends SP
 {
     /**
      * The key of the AuthId field in the state.
