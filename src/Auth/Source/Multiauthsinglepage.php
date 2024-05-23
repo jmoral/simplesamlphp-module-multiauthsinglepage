@@ -91,13 +91,14 @@ class Multiauthsinglepage extends SP
      */
     public static function handleLogin(Auth\Source $source, array $state)
     {
-        Logger::debug("Multiauthsinglepage - handleLogin" . json_encode($state));
+        Logger::debug("Multiauthsinglepage - handleLogin");
         if (is_null($state)) {
             throw new Error\NoState();
         }
 
         self::setSessionSource($source, $state);
         $source->authenticate($state);
+        Logger::debug("Multiauthsinglepage - handleLogin authenticate" . json_encode($state));
         Auth\Source::completeAuth($state);
         assert(false);
     }
