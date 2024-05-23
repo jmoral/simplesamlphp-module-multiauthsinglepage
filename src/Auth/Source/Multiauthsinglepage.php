@@ -120,6 +120,7 @@ class Multiauthsinglepage extends SP
             $msg = "Multiauthsinglepage - handleLoginPass $username unsuccessful login attempt.";
             Logger::debug($msg . $e->getMessage());
             Logger::info($msg);
+            throw $e;
         }
         $state['Attributes'] = $result;
         Auth\Source::completeAuth($state);
