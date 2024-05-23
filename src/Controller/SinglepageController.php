@@ -8,7 +8,6 @@ use SimpleSAML\Auth;
 use SimpleSAML\Auth\Source;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error;
-use SimpleSAML\Logger;
 use SimpleSAML\Module\ldap\Auth\Source\Ldap;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage as SourceMultiauthsinglepage;
 use SimpleSAML\Session;
@@ -69,27 +68,27 @@ class SinglepageController
         $state = $this->authState::loadState($stateId, SourceMultiauthsinglepage::STAGEID);
         $t = new Template($this->config, 'multiauthsinglepage:multiauthonepage.twig');
         $authsourceId = $request->get('authsource');
-        $errorTitle = '';
-        $errorDesc = '';
+        $errorCode = null;
+        $errorParams = null;
         if ($authsourceId !== null) {
             // attempt to log in
             try {
                 $as = Source::getById($authsourceId);
                 if ($as instanceof Ldap) {
                     $username = $request->get('username');
-                    Logger::debug("SinglepageController - username $username");
                     $pass = $request->get('password');
                     SourceMultiauthsinglepage::handleLoginPass($as, $state, $username, $pass);
                 } else {
                     SourceMultiauthsinglepage::handleLogin($as, $state);
                 }
-            } catch (\SimpleSAML\Error\Exception $e) {
-                $errorTitle = "Auth error";
-                $errorDesc = $e->getMessage();
+            } catch (\SimpleSAML\Error\Error $e) {
+                $errorCode = $e->getErrorCode();
+                $errorParams = $e->getParameters();
             }
         }
-        $t->data['errorTitle'] = $errorTitle;
-        $t->data['errorDesc'] = $errorDesc;
+        $t->data['errorcode'] = $errorCode;
+        $t->data['errorcodes'] = (new Error\ErrorCodes())->getAllMessages();
+        $t->data['errorparams'] = $errorParams;
         $t->data['stateParams'] = ['AuthState' => $stateId];
         return $t;
     }

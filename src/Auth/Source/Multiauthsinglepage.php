@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace SimpleSAML\Module\multiauthsinglepage\Auth\Source;
 
-use Exception;
 use SimpleSAML\Assert\Assert;
 use SimpleSAML\Auth;
 use SimpleSAML\Error;
 use SimpleSAML\Logger;
 use SimpleSAML\Module;
 use SimpleSAML\Module\ldap\Auth\Source\Ldap;
+use SimpleSAML\Module\saml\Auth\Source\SP;
 use SimpleSAML\Session;
 use SimpleSAML\Utils\HTTP;
-use SimpleSAML\Module\saml\Auth\Source\SP;
 
 class Multiauthsinglepage extends SP
 {
@@ -92,7 +91,7 @@ class Multiauthsinglepage extends SP
      */
     public static function handleLogin(Auth\Source $source, array $state)
     {
-        Logger::debug("Multiauthsinglepage - handleLogin");
+        Logger::debug("Multiauthsinglepage - handleLogin" . json_encode($state));
         if (is_null($state)) {
             throw new Error\NoState();
         }
@@ -105,15 +104,21 @@ class Multiauthsinglepage extends SP
 
     public static function handleLoginPass(Ldap $source, array $state, $username, $pass)
     {
-        Logger::debug("Multiauthsinglepage - handleLoginPass");
+        Logger::debug("Multiauthsinglepage - handleLoginPass $username login attempt");
         if (is_null($state)) {
             throw new Error\NoState();
         }
         self::setSessionSource($source, $state);
-        $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');
-        $myProtectedMethod = $class->getMethod('login');
-        $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
-
+        try {
+            $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');
+            $myProtectedMethod = $class->getMethod('login');
+            $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
+            Logger::info("Multiauthsinglepage - handleLoginPass $username login success");
+        } catch (Error\Exception $e) {
+            $msg = "Multiauthsinglepage - handleLoginPass $username unsuccessful login attempt.";
+            Logger::debug($msg . $e->getMessage());
+            Logger::info($msg);
+        }
         $state['Attributes'] = $result;
         Auth\Source::completeAuth($state);
         assert(false);
