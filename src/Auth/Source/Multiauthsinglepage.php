@@ -98,7 +98,8 @@ class Multiauthsinglepage extends SP
 
         self::setSessionSource($source, $state);
         $source->authenticate($state);
-        Logger::debug("Multiauthsinglepage - handleLogin authenticate" . json_encode($state));
+        $msg = "Multiauthsinglepage - handleLogin authenticate";
+        Logger::debug($msg . json_encode($state));
         Auth\Source::completeAuth($state);
         assert(false);
     }
@@ -115,11 +116,11 @@ class Multiauthsinglepage extends SP
             $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');
             $myProtectedMethod = $class->getMethod('login');
             $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
-            Logger::info("Multiauthsinglepage - handleLoginPass $username login success");
+            Logger::stats("Multiauthsinglepage - handleLoginPass $username login success");
         } catch (Error\Exception $e) {
             $msg = "Multiauthsinglepage - handleLoginPass $username unsuccessful login attempt.";
             Logger::debug($msg . $e->getMessage());
-            Logger::info($msg);
+            Logger::stats($msg);
             throw $e;
         }
         $state['Attributes'] = $result;
