@@ -110,13 +110,13 @@ class Multiauthsinglepage extends SP
         if (is_null($state)) {
             throw new Error\NoState();
         }
-        self::setSessionSource($source, $state);
         $result = [];
         try {
             $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');
             $myProtectedMethod = $class->getMethod('login');
             $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
             Logger::stats("Multiauthsinglepage - handleLoginPass $username login success");
+            self::setSessionSource($source, $state);
         } catch (Error\Exception $e) {
             $msg = "Multiauthsinglepage - handleLoginPass $username unsuccessful login attempt.";
             Logger::debug($msg . $e->getMessage());
