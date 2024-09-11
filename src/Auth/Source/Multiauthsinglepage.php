@@ -13,6 +13,7 @@ use SimpleSAML\Module\ldap\Auth\Source\Ldap;
 use SimpleSAML\Module\saml\Auth\Source\SP;
 use SimpleSAML\Session;
 use SimpleSAML\Utils\HTTP;
+use Symfony\Component\HttpFoundation\Request;
 
 class Multiauthsinglepage extends SP
 {
@@ -73,8 +74,13 @@ class Multiauthsinglepage extends SP
 
         $id = Auth\State::saveState($state, self::STAGEID);
         $url = Module::getModuleURL('multiauthsinglepage/login');
+
+        // in case user wants a specific authsource
+        $request = Request::createFromGlobals();
+        $directAuthSource = $request->get("authsource");
+
         $httpUtils = new HTTP();
-        $httpUtils->redirectTrustedURL($url, ['AuthState' => $id]);
+        $httpUtils->redirectTrustedURL($url, ['AuthState' => $id, 'authsource' => $directAuthSource]);
     }
 
     /**
