@@ -74,6 +74,9 @@ class SinglepageController
             // attempt to log in
             try {
                 $as = Source::getById($authsourceId);
+                if (is_null($as)) {
+                    throw new Error\BadRequest('wrong authsource parameter.');
+                }
                 if ($as instanceof Ldap) {
                     $username = $request->get('username');
                     $pass = $request->get('password');
