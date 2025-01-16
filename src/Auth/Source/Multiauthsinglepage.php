@@ -131,12 +131,12 @@ class Multiauthsinglepage extends SP
         }
         $state['Attributes'] = $result;
         Auth\Source::completeAuth($state);
-        assert(false);
     }
 
     public static function loginCompleted(array $state): void
     {
         Logger::debug("Multiauthsinglepage - loginCompleted");
+        parent::loginCompleted($state);
     }
 
     public static function setSessionSource(Auth\Source $source, array $state)
