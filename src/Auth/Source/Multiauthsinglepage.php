@@ -118,11 +118,11 @@ class Multiauthsinglepage extends SP
         }
         $result = [];
         try {
+            self::setSessionSource($source, $state);
             $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');
             $myProtectedMethod = $class->getMethod('login');
             $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
             Logger::stats("Multiauthsinglepage - handleLoginPass $username login success");
-            self::setSessionSource($source, $state);
         } catch (Error\Exception $e) {
             $msg = "Multiauthsinglepage - handleLoginPass $username unsuccessful login attempt.";
             Logger::debug($msg . $e->getMessage());
@@ -143,6 +143,7 @@ class Multiauthsinglepage extends SP
     {
         // Save the selected authentication source for the logout process.
         $session = Session::getSessionFromRequest();
+        Logger::debug("Multiauthsinglepage - session source " . $state[self::AUTHID] . " " . $source->getAuthId());
         $session->setData(
             self::SESSION_SOURCE,
             $state[self::AUTHID],
@@ -164,13 +165,14 @@ class Multiauthsinglepage extends SP
         // Get the source that was used to authenticate
         $session = Session::getSessionFromRequest();
         $authId = $session->getData(self::SESSION_SOURCE, $this->authId);
-
+        Logger::debug("Multiauthsinglepage - logout " . $authId);
         $source = Auth\Source::getById($authId);
         if ($source === null) {
             throw new Error\Exception('Invalid authentication source during logout: ' . $authId);
         }
 
         // Then, do the logout on it
+        Logger::debug("Multiauthsinglepage - logout state" . serialize($state));
         $source->logout($state);
     }
 }
