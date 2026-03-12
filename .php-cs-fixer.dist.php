@@ -12,4 +12,5 @@ return (new PhpCsFixer\Config())
         '@Symfony:risky' => true,
         '@PSR12' => true,
     ])
+    ->setRiskyAllowed(true)
     ->setFinder($finder);
