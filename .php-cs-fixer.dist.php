@@ -11,6 +11,5 @@ return (new PhpCsFixer\Config())
         '@Symfony' => true,
         '@Symfony:risky' => true,
         '@PSR12' => true,
-        'header_comment' => ['header' => $fileHeaderComment, 'separate' => 'both'],
     ])
     ->setFinder($finder);
