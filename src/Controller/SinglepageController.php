@@ -35,15 +35,17 @@ class SinglepageController
      */
     public function __construct(
         protected Configuration $config,
-        protected Session $session
+        protected Session $session,
     ) {
     }
 
+    
     /**
      * @var \SimpleSAML\Auth\State|string
      * @psalm-var \SimpleSAML\Auth\State|class-string
      */
     protected $authState = Auth\State::class;
+
 
     /**
      * Inject the \SimpleSAML\Auth\State dependency.
@@ -54,6 +56,7 @@ class SinglepageController
     {
         $this->authState = $authState;
     }
+
 
     /**
      * @param \Symfony\Component\HttpFoundation\Request $request The current request.

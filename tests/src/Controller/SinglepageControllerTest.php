@@ -25,6 +25,7 @@ class SinglepageControllerTest extends TestCase
     protected Session $session;
 
     private const URI_LOGIN = '/module.php/multiauthsinglepage/login';
+    
     /**
      * Set up for each test.
      */
@@ -37,7 +38,7 @@ class SinglepageControllerTest extends TestCase
                 'module.enable' => ['multiauthsinglepage' => true],
             ],
             '[ARRAY]',
-            'simplesaml'
+            'simplesaml',
         );
         $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
         $this->session = Session::getSessionFromRequest();
@@ -49,15 +50,16 @@ class SinglepageControllerTest extends TestCase
                 'sources' => ['success-as'],
             ],
             'dummy-as' => [
-                'multiauthsinglepage:DummyAuthSource'
+                'multiauthsinglepage:DummyAuthSource',
             ],
             'success-as' => [
-                'multiauthsinglepage:SuccessAuthSource'
-            ]
+                'multiauthsinglepage:SuccessAuthSource',
+            ],
         ]);
 
         Configuration::setPreLoadedConfig($sourceConfig, 'authsources.php');
     }
+
 
     /**
      * Test no state.
@@ -69,7 +71,7 @@ class SinglepageControllerTest extends TestCase
         $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
         $request = Request::create(
             self::URI_LOGIN,
-            'GET'
+            'GET',
         );
 
         $c = new Controller\SinglepageController($this->config, $this->session);
@@ -79,6 +81,7 @@ class SinglepageControllerTest extends TestCase
 
         $c->main($request);
     }
+
 
     /**
      * Test no authsource selected.
@@ -92,7 +95,7 @@ class SinglepageControllerTest extends TestCase
         $request = Request::create(
             self::URI_LOGIN,
             'GET',
-            $stateParams
+            $stateParams,
         );
 
         $c = new Controller\SinglepageController($this->config, $this->session);
@@ -110,6 +113,7 @@ class SinglepageControllerTest extends TestCase
         $this->assertEquals($stateParams, $response->data['stateParams']);
     }
 
+
     /**
      * Test authsource selected.
      *
@@ -121,7 +125,7 @@ class SinglepageControllerTest extends TestCase
         $request = Request::create(
             self::URI_LOGIN,
             'GET',
-            ['AuthState' => 'abc123', 'authsource' => 'singlepage-as']
+            ['AuthState' => 'abc123', 'authsource' => 'singlepage-as'],
         );
 
         $c = new Controller\SinglepageController($this->config, $this->session);

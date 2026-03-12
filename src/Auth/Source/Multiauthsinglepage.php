@@ -61,6 +61,7 @@ class Multiauthsinglepage extends SP
         $this->sources = $config['sources'];
     }
 
+    
     /**
      * Prompt the user with a list of authentication sources.
      *
@@ -83,6 +84,7 @@ class Multiauthsinglepage extends SP
         $httpUtils->redirectTrustedURL($url, ['AuthState' => $id, 'authsource' => $directAuthSource]);
     }
 
+    
     /**
      * Handle login request.
      *
@@ -110,6 +112,7 @@ class Multiauthsinglepage extends SP
         assert(false);
     }
 
+
     public static function handleLoginPass(Ldap $source, array $state, $username, $pass)
     {
         Logger::debug("Multiauthsinglepage - handleLoginPass $username login attempt");
@@ -133,11 +136,13 @@ class Multiauthsinglepage extends SP
         Auth\Source::completeAuth($state);
     }
 
+
     public static function loginCompleted(array $state): void
     {
         Logger::debug("Multiauthsinglepage - loginCompleted");
         parent::loginCompleted($state);
     }
+
 
     public static function setSessionSource(Auth\Source $source, array $state)
     {
@@ -148,9 +153,10 @@ class Multiauthsinglepage extends SP
             self::SESSION_SOURCE,
             $state[self::AUTHID],
             $source->getAuthId(),
-            Session::DATA_TIMEOUT_SESSION_END
+            Session::DATA_TIMEOUT_SESSION_END,
         );
     }
+
 
     /**
      * Log out from this authentication source.
