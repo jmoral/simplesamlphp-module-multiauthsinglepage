@@ -37,6 +37,7 @@ class Multiauthsinglepage extends SP
      */
     public const SESSION_SOURCE = 'multiauth:selectedSource';
 
+    
     /**
      * @var string[] $sources
      */
@@ -61,7 +62,7 @@ class Multiauthsinglepage extends SP
         $this->sources = $config['sources'];
     }
 
-    
+
     /**
      * Prompt the user with a list of authentication sources.
      *
@@ -84,7 +85,7 @@ class Multiauthsinglepage extends SP
         $httpUtils->redirectTrustedURL($url, ['AuthState' => $id, 'authsource' => $directAuthSource]);
     }
 
-    
+
     /**
      * Handle login request.
      *

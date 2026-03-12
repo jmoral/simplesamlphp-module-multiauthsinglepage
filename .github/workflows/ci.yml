@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.2', '8.3']
+        php-version: ['8.3']
 
     steps:
       - name: Checkout code
@@ -57,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.2', '8.3']
+        php-version: ['8.3']
 
     steps:
       - name: Checkout code
@@ -146,5 +146,5 @@ jobs:
       - name: Run markdownlint
         uses: DavidAnson/markdownlint-cli2-action@v16
         with:
-          config: .markdownlintrc.json
+          config: .markdownlint.json
           globs: '**/*.md'

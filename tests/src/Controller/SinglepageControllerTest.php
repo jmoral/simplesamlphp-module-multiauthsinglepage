@@ -21,11 +21,14 @@ class SinglepageControllerTest extends TestCase
     /** @var \SimpleSAML\Configuration */
     protected Configuration $config;
 
+    
     /** @var \SimpleSAML\Session */
     protected Session $session;
 
+
     private const URI_LOGIN = '/module.php/multiauthsinglepage/login';
-    
+
+
     /**
      * Set up for each test.
      */

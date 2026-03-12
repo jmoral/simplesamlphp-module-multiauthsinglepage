@@ -39,7 +39,7 @@ class SinglepageController
     ) {
     }
 
-    
+
     /**
      * @var \SimpleSAML\Auth\State|string
      * @psalm-var \SimpleSAML\Auth\State|class-string
