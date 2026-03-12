@@ -6,10 +6,11 @@ $finder = PhpCsFixer\Finder::create()
         __DIR__ . '/tests',
     ]);
 
-return PhpCsFixer\Config::create()
+return (new PhpCsFixer\Config())
     ->setRules([
         '@Symfony' => true,
         '@Symfony:risky' => true,
         '@PSR12' => true,
         'header_comment' => ['header' => $fileHeaderComment, 'separate' => 'both'],
-    ])->setFinder($finder);
+    ])
+    ->setFinder($finder);

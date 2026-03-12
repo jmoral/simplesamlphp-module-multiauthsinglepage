@@ -21,7 +21,6 @@ class SinglepageControllerTest extends TestCase
     /** @var \SimpleSAML\Configuration */
     protected Configuration $config;
 
-    
     /** @var \SimpleSAML\Session */
     protected Session $session;
 

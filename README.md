@@ -1,6 +1,6 @@
 # SimpleSAMLphp Module multiauthsinglepage
 
-This module try to identify an user multiple AuthSources in a single page. 
+This module try to identify an user multiple AuthSources in a single page.
 
 ## Requirements
 
@@ -18,5 +18,4 @@ bash$ composer require jmoral/simplesamlphp-module-multiauthsinglepage
 
 Edit `config/authsources.php` and add authsource
 
-customize loginuserpass.twig 
-
+customize loginuserpass.twig

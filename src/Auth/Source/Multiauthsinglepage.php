@@ -37,7 +37,7 @@ class Multiauthsinglepage extends SP
      */
     public const SESSION_SOURCE = 'multiauth:selectedSource';
 
-    
+
     /**
      * @var string[] $sources
      */
