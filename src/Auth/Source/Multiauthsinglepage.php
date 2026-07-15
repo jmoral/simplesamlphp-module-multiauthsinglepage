@@ -68,7 +68,7 @@ class Multiauthsinglepage extends SP
      *
      * @param array &$state Information about the current authentication.
      */
-    public function authenticate(array &$state): void
+    public function authenticate(array &$state): never
     {
         Logger::debug("Multiauthsinglepage - authenticate");
         // We are going to need the authId in order to retrieve this authentication source later
