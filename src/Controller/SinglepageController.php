@@ -26,8 +26,8 @@ class SinglepageController
      *
      * It initializes the global configuration and session for the controllers implemented here.
      *
-     * @param Configuration $config The configuration to use by the controllers.
-     * @param Session $session The session to use by the controllers.
+     * @param Configuration $config  the configuration to use by the controllers.
+     * @param Session       $session the session to use by the controllers.
      *
      * @throws \Exception
      */

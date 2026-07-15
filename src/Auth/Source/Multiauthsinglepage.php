@@ -39,10 +39,9 @@ class Multiauthsinglepage extends SP
 
 
     /**
-     * @var string[] $sources
+     * @var string[]
      */
     private array $sources;
-
 
     /**
      * @param array<mixed> $info
@@ -62,15 +61,14 @@ class Multiauthsinglepage extends SP
         $this->sources = $config['sources'];
     }
 
-
     /**
      * Prompt the user with a list of authentication sources.
      *
-     * @param array &$state Information about the current authentication.
+     * @param array &$state Information about the current authentication
      */
     public function authenticate(array &$state): never
     {
-        Logger::debug("Multiauthsinglepage - authenticate");
+        Logger::debug('Multiauthsinglepage - authenticate');
         // We are going to need the authId in order to retrieve this authentication source later
         $state[self::AUTHID] = $this->authId;
 
@@ -79,7 +77,7 @@ class Multiauthsinglepage extends SP
 
         // in case user wants a specific authsource
         $request = Request::createFromGlobals();
-        $directAuthSource = $request->get("authsource");
+        $directAuthSource = $request->get('authsource');
 
         $httpUtils = new HTTP();
         $httpUtils->redirectTrustedURL($url, ['AuthState' => $id, 'authsource' => $directAuthSource]);
@@ -94,13 +92,13 @@ class Multiauthsinglepage extends SP
      * username/password failure, it will return the error code. Other failures will throw an
      * exception.
      *
-     * @param string $authStateId  The identifier of the authentication state.
-     * @param \SimpleSAML\Auth\Source $source the authentication source.
-     * @return string|void Error code in the case of an error.
+     * @param string $authStateId  The identifier of the authentication state
+     * @param \SimpleSAML\Auth\Source $source the authentication source
+     * @return string|void Error code in the case of an error
      */
     public static function handleLogin(Auth\Source $source, array $state)
     {
-        Logger::debug("Multiauthsinglepage - handleLogin");
+        Logger::debug('Multiauthsinglepage - handleLogin');
         if (is_null($state)) {
             throw new Error\NoState();
         }
@@ -108,7 +106,7 @@ class Multiauthsinglepage extends SP
         self::setSessionSource($source, $state);
         $source->authenticate($state);
         $msg = "Multiauthsinglepage - handleLogin authenticate";
-        Logger::debug($msg . json_encode($state));
+        Logger::debug($msg.json_encode($state));
         Auth\Source::completeAuth($state);
         assert(false);
     }
@@ -129,7 +127,7 @@ class Multiauthsinglepage extends SP
             Logger::stats("Multiauthsinglepage - handleLoginPass $username login success");
         } catch (Error\Exception $e) {
             $msg = "Multiauthsinglepage - handleLoginPass $username unsuccessful login attempt.";
-            Logger::debug($msg . $e->getMessage());
+            Logger::debug($msg.$e->getMessage());
             Logger::stats($msg);
             throw $e;
         }
@@ -137,13 +135,11 @@ class Multiauthsinglepage extends SP
         Auth\Source::completeAuth($state);
     }
 
-
     public static function loginCompleted(array $state): void
     {
-        Logger::debug("Multiauthsinglepage - loginCompleted");
+        Logger::debug('Multiauthsinglepage - loginCompleted');
         parent::loginCompleted($state);
     }
-
 
     public static function setSessionSource(Auth\Source $source, array $state)
     {
@@ -158,28 +154,27 @@ class Multiauthsinglepage extends SP
         );
     }
 
-
     /**
      * Log out from this authentication source.
      *
      * This method retrieves the authentication source used for this
      * session and then call the logout method on it.
      *
-     * @param array &$state Information about the current logout operation.
+     * @param array &$state Information about the current logout operation
      */
     public function logout(array &$state): void
     {
         // Get the source that was used to authenticate
         $session = Session::getSessionFromRequest();
         $authId = $session->getData(self::SESSION_SOURCE, $this->authId);
-        Logger::debug("Multiauthsinglepage - logout " . $authId);
+        Logger::debug("Multiauthsinglepage - logout ".$authId);
         $source = Auth\Source::getById($authId);
         if ($source === null) {
-            throw new Error\Exception('Invalid authentication source during logout: ' . $authId);
+            throw new Error\Exception('Invalid authentication source during logout: '.$authId);
         }
 
         // Then, do the logout on it
-        Logger::debug("Multiauthsinglepage - logout state" . serialize($state));
+        Logger::debug("Multiauthsinglepage - logout state".serialize($state));
         $source->logout($state);
     }
 }
