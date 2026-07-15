@@ -106,7 +106,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.3'
           tools: composer, php-cs-fixer
           coverage: none
 
@@ -114,9 +114,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: vendor
-          key: composer-8.2-${{ hashFiles('composer.lock') }}
+          key: composer-8.3-${{ hashFiles('composer.lock') }}
           restore-keys: |
-            composer-8.2-
+            composer-8.3-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
