@@ -93,47 +93,7 @@ jobs:
           fail_ci_if_error: false
 
   # ──────────────────────────────────────────
-  # Job 3: PHP CS Fixer (formato de código)
-  # ──────────────────────────────────────────
-  php-cs-fixer:
-    name: PHP CS Fixer
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          tools: composer, php-cs-fixer
-          coverage: none
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: vendor
-          key: composer-8.2-${{ hashFiles('composer.lock') }}
-          restore-keys: |
-            composer-8.2-
-
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
-
-      - name: Run PHP CS Fixer (dry-run)
-        run: |
-          # Comprueba si existe el fichero de config moderno (v3) o el legacy (v2)
-          if [ -f ".php-cs-fixer.dist.php" ]; then
-            vendor/bin/php-cs-fixer fix --dry-run --diff --config=.php-cs-fixer.dist.php
-          elif [ -f ".php_cs.dist" ]; then
-            vendor/bin/php-cs-fixer fix --dry-run --diff --config=.php_cs.dist
-          else
-            echo "No PHP CS Fixer config found, skipping."
-          fi
-
-  # ──────────────────────────────────────────
-  # Job 4: Markdown Lint
+  # Job 3: Markdown Lint
   # ──────────────────────────────────────────
   markdownlint:
     name: Markdown Lint

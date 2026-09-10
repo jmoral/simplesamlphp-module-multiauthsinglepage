@@ -27,8 +27,7 @@
         "simplesamlphp/simplesamlphp-module-ldap": "2.3.5"
     },
     "require-dev": {
-        "simplesamlphp/simplesamlphp-test-framework": "^1.6",
-        "friendsofphp/php-cs-fixer": "^3.0"
+        "simplesamlphp/simplesamlphp-test-framework": "^1.6"
     },
     "config": {
         "allow-plugins": {
