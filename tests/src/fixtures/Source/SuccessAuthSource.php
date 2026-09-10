@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\SimpleSAML\Module\multiauthsinglepage\fixtures\Source;
+namespace SimpleSAML\Test\Module\multiauthsinglepage\fixtures\Source;
 
 use SimpleSAML\Module\core\Auth\UserPassBase;
 

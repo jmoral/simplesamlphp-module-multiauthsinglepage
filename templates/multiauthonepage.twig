@@ -17,12 +17,12 @@
     </div>
     {% endif -%}
 
-    {% if errorTitle != null %}
+    {% if errorcode -%}
     <div class="message-box error">
-        <h3>{{ errorTitle }}</h3>
-        <p>{{ errorDesc }}</p>
+        <h3>{{ errorcodes['title'][errorcode]|trans(errorparams) }}</h3>
+        <p>{{ errorcodes['descr'][errorcode]|trans(errorparams) }}</p>
     </div>
-    {% endif %}
+    {%- endif %}
 
     <h2>{{ pagetitle }}</h2>
     <form action="?" method="post" name="f">

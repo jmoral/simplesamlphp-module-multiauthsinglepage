@@ -16,7 +16,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\SimpleSAML\\Module\\multiauthsinglepage\\": "tests/"
+            "SimpleSAML\\Test\\Module\\multiauthsinglepage\\": "tests/src/"
         }
     },
     "require": {

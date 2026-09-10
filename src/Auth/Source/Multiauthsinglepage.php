@@ -89,21 +89,16 @@ class Multiauthsinglepage extends SP
     /**
      * Handle login request.
      *
-     * This function is used by the login form (core/www/loginuserpass.php) when the user
-     * enters a username and password. On success, it will not return. On wrong
-     * username/password failure, it will return the error code. Other failures will throw an
-     * exception.
+     * This function hands the request over to the selected authentication source. On success
+     * it does not return (the source redirects and completes the login). Failures are thrown
+     * as exceptions.
      *
-     * @param string $authStateId  The identifier of the authentication state.
-     * @param \SimpleSAML\Auth\Source $source the authentication source.
-     * @return string|void Error code in the case of an error.
+     * @param \SimpleSAML\Auth\Source $source The selected authentication source.
+     * @param array $state                    Information about the current authentication.
      */
-    public static function handleLogin(Auth\Source $source, array $state)
+    public static function handleLogin(Auth\Source $source, array $state): void
     {
         Logger::debug("Multiauthsinglepage - handleLogin");
-        if (is_null($state)) {
-            throw new Error\NoState();
-        }
 
         self::setSessionSource($source, $state);
         $source->authenticate($state);
@@ -114,13 +109,20 @@ class Multiauthsinglepage extends SP
     }
 
 
-    public static function handleLoginPass(Ldap $source, array $state, $username, $pass)
+    /**
+     * Authenticate directly against an LDAP source with the given credentials.
+     *
+     * @param \SimpleSAML\Module\ldap\Auth\Source\Ldap $source The LDAP authentication source.
+     * @param array $state                                     Information about the current authentication.
+     * @param string|null $username                            The username entered by the user.
+     * @param string|null $pass                                The password entered by the user.
+     */
+    public static function handleLoginPass(Ldap $source, array $state, ?string $username, ?string $pass): void
     {
         Logger::debug("Multiauthsinglepage - handleLoginPass $username login attempt");
-        if (is_null($state)) {
-            throw new Error\NoState();
+        if ($username === null || $pass === null) {
+            throw new Error\Error(Error\ErrorCodes::WRONGUSERPASS);
         }
-        $result = [];
         try {
             self::setSessionSource($source, $state);
             $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');

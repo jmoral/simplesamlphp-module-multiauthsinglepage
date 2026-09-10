@@ -10,6 +10,7 @@ use SimpleSAML\Configuration;
 use SimpleSAML\Error;
 use SimpleSAML\Module\multiauthsinglepage\Controller;
 use SimpleSAML\Session;
+use SimpleSAML\Test\Module\multiauthsinglepage\fixtures\Source\SuccessAuthSource;
 use SimpleSAML\XHTML\Template;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -55,7 +56,7 @@ class SinglepageControllerTest extends TestCase
                 'multiauthsinglepage:DummyAuthSource',
             ],
             'success-as' => [
-                'multiauthsinglepage:SuccessAuthSource',
+                SuccessAuthSource::class,
             ],
         ]);
 
