@@ -1,6 +1,6 @@
 {
     "name": "jmoral/simplesamlphp-module-multiauthsinglepage",
-    "description": "A module that can authenticate in a single whith multiple authsources",
+    "description": "Authenticate against one of several SimpleSAMLphp authentication sources from a single login page",
     "type": "simplesamlphp-module",
     "license": "LGPL-2.1-or-later",
     "authors": [
