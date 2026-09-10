@@ -1,3 +1,6 @@
+# Normalize line endings to LF for all text files
+* text=auto eol=lf
+
 /tools/ export-ignore
 /tests/ export-ignore
 codecov.yml export-ignore
