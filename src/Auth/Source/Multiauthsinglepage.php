@@ -102,10 +102,9 @@ class Multiauthsinglepage extends SP
 
         self::setSessionSource($source, $state);
         $source->authenticate($state);
-        $msg = "Multiauthsinglepage - handleLogin authenticate";
-        Logger::debug($msg . json_encode($state));
         Auth\Source::completeAuth($state);
-        assert(false);
+
+        throw new \LogicException('Auth\Source::completeAuth() should never return.');
     }
 
 
@@ -125,9 +124,13 @@ class Multiauthsinglepage extends SP
         }
         try {
             self::setSessionSource($source, $state);
-            $class = new \ReflectionClass('SimpleSAML\Module\ldap\Auth\Source\Ldap');
-            $myProtectedMethod = $class->getMethod('login');
-            $result = $myProtectedMethod->invokeArgs($source, [$username, $pass]);
+            if ($source instanceof LdapSinglePage) {
+                $result = $source->loginSinglePage($username, $pass);
+            } else {
+                // Plain "ldap:Ldap" source: Ldap::login() is protected. Configuring the
+                // source as "multiauthsinglepage:LdapSinglePage" avoids this reflection.
+                $result = (new \ReflectionMethod($source, 'login'))->invoke($source, $username, $pass);
+            }
             Logger::stats("Multiauthsinglepage - handleLoginPass $username login success");
         } catch (Error\Exception $e) {
             $msg = "Multiauthsinglepage - handleLoginPass $username unsuccessful login attempt.";
@@ -181,7 +184,6 @@ class Multiauthsinglepage extends SP
         }
 
         // Then, do the logout on it
-        Logger::debug("Multiauthsinglepage - logout state" . serialize($state));
         $source->logout($state);
     }
 }
