@@ -66,10 +66,10 @@ class SinglepageController
         if (!$request->request->has('AuthState') && !$request->query->has('AuthState')) {
             throw new Error\BadRequest('Missing AuthState parameter.');
         }
-        $stateId = $request->get('AuthState');
+        $stateId = self::getParam($request, 'AuthState') ?? '';
         $state = $this->authState::loadState($stateId, SourceMultiauthsinglepage::STAGEID);
         $t = new Template($this->config, 'multiauthsinglepage:multiauthonepage.twig');
-        $authsourceId = $request->get('authsource');
+        $authsourceId = self::getParam($request, 'authsource');
         $errorCode = null;
         $errorParams = null;
         if ($authsourceId !== null) {
@@ -80,8 +80,8 @@ class SinglepageController
                     throw new Error\BadRequest('wrong authsource parameter.');
                 }
                 if ($as instanceof Ldap) {
-                    $username = $request->get('username');
-                    $pass = $request->get('password');
+                    $username = self::getParam($request, 'username');
+                    $pass = self::getParam($request, 'password');
                     SourceMultiauthsinglepage::handleLoginPass($as, $state, $username, $pass);
                 } else {
                     SourceMultiauthsinglepage::handleLogin($as, $state);
@@ -96,5 +96,16 @@ class SinglepageController
         $t->data['errorparams'] = $errorParams;
         $t->data['stateParams'] = ['AuthState' => $stateId];
         return $t;
+    }
+
+
+    /**
+     * Read a request parameter from the query string, falling back to the POST body.
+     *
+     * Replaces the deprecated \Symfony\Component\HttpFoundation\Request::get().
+     */
+    private static function getParam(Request $request, string $key): ?string
+    {
+        return $request->query->get($key) ?? $request->request->get($key);
     }
 }

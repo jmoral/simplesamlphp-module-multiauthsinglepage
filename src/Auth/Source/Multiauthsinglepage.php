@@ -79,7 +79,7 @@ class Multiauthsinglepage extends SP
 
         // in case user wants a specific authsource
         $request = Request::createFromGlobals();
-        $directAuthSource = $request->get("authsource");
+        $directAuthSource = $request->query->get('authsource') ?? $request->request->get('authsource');
 
         $httpUtils = new HTTP();
         $httpUtils->redirectTrustedURL($url, ['AuthState' => $id, 'authsource' => $directAuthSource]);

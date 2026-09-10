@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `saml:SP` in SimpleSAMLphp 2.5.
 - `handleLoginPass()` uses `LdapSinglePage::loginSinglePage()` when available
   and only falls back to reflection for a plain `ldap:Ldap` source.
+- Replaced the deprecated `Request::get()` (Symfony 7.4) with explicit
+  query-string / POST-body reads.
 - Single code style tool (`phpcs` with the SimpleSAMLphp standard); dropped
   `php-cs-fixer`.
 - Rewrote the README with a real configuration example.
