@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   query-string / POST-body reads.
 - Single code style tool (`phpcs` with the SimpleSAMLphp standard); dropped
   `php-cs-fixer`.
+- Loosened the `simplesamlphp-module-ldap` constraint from `2.5.2` to
+  `^2.5.2`.
+- The test bootstrap defines `SIMPLESAMLPHP_TEST_NOEXIT` so redirect flows
+  can be exercised in tests.
 - Rewrote the README with a real configuration example.
 
 ### Fixed
