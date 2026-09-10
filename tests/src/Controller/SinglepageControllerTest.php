@@ -166,7 +166,7 @@ class SinglepageControllerTest extends TestCase
         $response = $c->main($request);
 
         $this->assertSame(
-            [['id' => 'success-as', 'label' => 'success-as', 'userpass' => false]],
+            [['id' => 'success-as', 'label' => 'success-as', 'userpass' => true]],
             $response->data['sources'],
         );
     }
@@ -196,5 +196,33 @@ class SinglepageControllerTest extends TestCase
         $response = $c->main($request);
 
         $this->assertSame('BADREQUEST', $response->data['errorcode']);
+    }
+
+
+    /**
+     * A non-LDAP username/password source is authenticated inline, not by redirect:
+     * posting it without credentials yields WRONGUSERPASS.
+     *
+     * @return void
+     */
+    public function testUserPassSourceIsAuthenticatedInline(): void
+    {
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $request = Request::create(
+            self::URI_LOGIN,
+            'POST',
+            ['AuthState' => 'abc123', 'authsource' => 'success-as'],
+        );
+
+        $c = new Controller\SinglepageController($this->config, $this->session);
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [Multiauthsinglepage::SOURCESID => ['success-as']];
+            }
+        });
+        $response = $c->main($request);
+
+        $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
     }
 }

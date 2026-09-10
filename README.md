@@ -46,9 +46,10 @@ $config = [
         ],
     ],
 
-    // A username/password source. Configure it as multiauthsinglepage:LdapSinglePage
-    // rather than ldap:Ldap so the module can authenticate against it without
-    // reflection.
+    // Any username/password source (sqlauth:SQL, core:AdminPassword, ...) works
+    // and is authenticated on the single page. An ldap: source can be configured
+    // as multiauthsinglepage:LdapSinglePage so the module reaches its login()
+    // without reflection.
     'ldap' => [
         'multiauthsinglepage:LdapSinglePage',
         'connection_string' => 'ldap://ldap.example.org',
@@ -72,9 +73,9 @@ $config = [
    `AuthState` parameter.
 3. That page (`templates/multiauthonepage.twig`) presents the configured
    sources. When the user submits it with an `authsource` value:
-   * for a username/password source (an `ldap:Ldap` / `LdapSinglePage`
-     instance) the module binds directly with the submitted `username` and
-     `password`;
+   * for a username/password source (any `core:UserPassBase` subclass, e.g.
+     `ldap:Ldap`, `sqlauth:SQL`) the module authenticates directly with the
+     submitted `username` and `password`;
    * for any other source the module hands over to that source's own
      `authenticate()` (e.g. a redirect to a remote IdP).
 4. On logout the module logs out from whichever source was used, which it

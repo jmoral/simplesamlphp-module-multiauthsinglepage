@@ -21,8 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Require PHP >= 8.3 and SimpleSAMLphp >= 2.5.2.
 - `Multiauthsinglepage::authenticate()` now returns `never`, to match
   `saml:SP` in SimpleSAMLphp 2.5.
-- `handleLoginPass()` uses `LdapSinglePage::loginSinglePage()` when available
-  and only falls back to reflection for a plain `ldap:Ldap` source.
+- Any `core:UserPassBase` source (e.g. `sqlauth:SQL`, `core:AdminPassword`)
+  is now authenticated on the single page, not just `ldap:Ldap`. The
+  dispatch checks `instanceof UserPassBase`; `handleLoginPass()` was renamed
+  to `handleUserPassLogin()` and typed accordingly.
+- `handleUserPassLogin()` uses `LdapSinglePage::loginSinglePage()` when
+  available and only falls back to reflection otherwise.
 - Replaced the deprecated `Request::get()` (Symfony 7.4) with explicit
   query-string / POST-body reads.
 - Single code style tool (`phpcs` with the SimpleSAMLphp standard); dropped

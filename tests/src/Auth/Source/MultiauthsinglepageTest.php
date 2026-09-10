@@ -7,7 +7,7 @@ namespace SimpleSAML\Test\Module\multiauthsinglepage\Auth\Source;
 use PHPUnit\Framework\TestCase;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error;
-use SimpleSAML\Module\ldap\Auth\Source\Ldap;
+use SimpleSAML\Module\core\Auth\UserPassBase;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage;
 use SimpleSAML\Session;
 
@@ -64,10 +64,10 @@ class MultiauthsinglepageTest extends TestCase
     }
 
 
-    public function testHandleLoginPassRejectsMissingUsername(): void
+    public function testHandleUserPassLoginRejectsMissingUsername(): void
     {
         try {
-            Multiauthsinglepage::handleLoginPass($this->createStub(Ldap::class), [], null, 'secret');
+            Multiauthsinglepage::handleUserPassLogin($this->createStub(UserPassBase::class), [], null, 'secret');
             $this->fail('Expected an ' . Error\Error::class);
         } catch (Error\Error $e) {
             $this->assertSame(Error\ErrorCodes::WRONGUSERPASS, $e->getErrorCode());
@@ -75,10 +75,10 @@ class MultiauthsinglepageTest extends TestCase
     }
 
 
-    public function testHandleLoginPassRejectsMissingPassword(): void
+    public function testHandleUserPassLoginRejectsMissingPassword(): void
     {
         try {
-            Multiauthsinglepage::handleLoginPass($this->createStub(Ldap::class), [], 'alice', null);
+            Multiauthsinglepage::handleUserPassLogin($this->createStub(UserPassBase::class), [], 'alice', null);
             $this->fail('Expected an ' . Error\Error::class);
         } catch (Error\Error $e) {
             $this->assertSame(Error\ErrorCodes::WRONGUSERPASS, $e->getErrorCode());
@@ -90,11 +90,11 @@ class MultiauthsinglepageTest extends TestCase
     {
         $session = Session::getSessionFromRequest();
 
-        $ldap = $this->createStub(Ldap::class);
-        $ldap->method('getAuthId')->willReturn('ldap-as');
+        $source = $this->createStub(UserPassBase::class);
+        $source->method('getAuthId')->willReturn('ldap-as');
 
         $state = [Multiauthsinglepage::AUTHID => 'singlepage-as'];
-        Multiauthsinglepage::setSessionSource($ldap, $state);
+        Multiauthsinglepage::setSessionSource($source, $state);
 
         $this->assertSame(
             'ldap-as',

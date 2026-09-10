@@ -9,7 +9,7 @@ use SimpleSAML\Auth;
 use SimpleSAML\Error;
 use SimpleSAML\Logger;
 use SimpleSAML\Module;
-use SimpleSAML\Module\ldap\Auth\Source\Ldap;
+use SimpleSAML\Module\core\Auth\UserPassBase;
 use SimpleSAML\Module\saml\Auth\Source\SP;
 use SimpleSAML\Session;
 use SimpleSAML\Utils\HTTP;
@@ -111,16 +111,20 @@ class Multiauthsinglepage extends SP
 
 
     /**
-     * Authenticate directly against an LDAP source with the given credentials.
+     * Authenticate directly against a username/password source with the given credentials.
      *
-     * @param \SimpleSAML\Module\ldap\Auth\Source\Ldap $source The LDAP authentication source.
-     * @param array $state                                     Information about the current authentication.
-     * @param string|null $username                            The username entered by the user.
-     * @param string|null $pass                                The password entered by the user.
+     * @param \SimpleSAML\Module\core\Auth\UserPassBase $source The username/password source.
+     * @param array $state                                      Information about the current authentication.
+     * @param string|null $username                             The username entered by the user.
+     * @param string|null $pass                                 The password entered by the user.
      */
-    public static function handleLoginPass(Ldap $source, array $state, ?string $username, ?string $pass): void
-    {
-        Logger::debug("Multiauthsinglepage - handleLoginPass $username login attempt");
+    public static function handleUserPassLogin(
+        UserPassBase $source,
+        array $state,
+        ?string $username,
+        ?string $pass,
+    ): void {
+        Logger::debug("Multiauthsinglepage - handleUserPassLogin $username login attempt");
         if ($username === null || $pass === null) {
             throw new Error\Error(Error\ErrorCodes::WRONGUSERPASS);
         }
@@ -129,13 +133,13 @@ class Multiauthsinglepage extends SP
             if ($source instanceof LdapSinglePage) {
                 $result = $source->loginSinglePage($username, $pass);
             } else {
-                // Plain "ldap:Ldap" source: Ldap::login() is protected. Configuring the
-                // source as "multiauthsinglepage:LdapSinglePage" avoids this reflection.
+                // UserPassBase::login() is protected. An ldap: source can be configured as
+                // "multiauthsinglepage:LdapSinglePage" to avoid this reflection call.
                 $result = (new \ReflectionMethod($source, 'login'))->invoke($source, $username, $pass);
             }
-            Logger::stats("Multiauthsinglepage - handleLoginPass $username login success");
+            Logger::stats("Multiauthsinglepage - handleUserPassLogin $username login success");
         } catch (Error\Exception $e) {
-            $msg = "Multiauthsinglepage - handleLoginPass $username unsuccessful login attempt.";
+            $msg = "Multiauthsinglepage - handleUserPassLogin $username unsuccessful login attempt.";
             Logger::debug($msg . $e->getMessage());
             Logger::stats($msg);
             throw $e;

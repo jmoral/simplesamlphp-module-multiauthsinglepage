@@ -9,7 +9,7 @@ use SimpleSAML\Auth\Source;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error;
 use SimpleSAML\Logger;
-use SimpleSAML\Module\ldap\Auth\Source\Ldap;
+use SimpleSAML\Module\core\Auth\UserPassBase;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage as SourceMultiauthsinglepage;
 use SimpleSAML\Session;
 use SimpleSAML\XHTML\Template;
@@ -87,11 +87,13 @@ class SinglepageController
                 if (is_null($as)) {
                     throw new Error\BadRequest('wrong authsource parameter.');
                 }
-                if ($as instanceof Ldap) {
+                if ($as instanceof UserPassBase) {
+                    // Username/password source: collect the credentials on this page.
                     $username = self::getParam($request, 'username');
                     $pass = self::getParam($request, 'password');
-                    SourceMultiauthsinglepage::handleLoginPass($as, $state, $username, $pass);
+                    SourceMultiauthsinglepage::handleUserPassLogin($as, $state, $username, $pass);
                 } else {
+                    // Redirect-style source (SP, CAS, ...): hand over to it.
                     SourceMultiauthsinglepage::handleLogin($as, $state);
                 }
             } catch (\SimpleSAML\Error\Error $e) {
@@ -147,8 +149,8 @@ class SinglepageController
                 'id' => $id,
                 'label' => self::sourceLabel($id),
                 // Username/password sources are prompted inline; other sources redirect.
-                // Kept in sync with the dispatch in main() (currently: Ldap only).
-                'userpass' => $as instanceof Ldap,
+                // Kept in sync with the dispatch in main().
+                'userpass' => $as instanceof UserPassBase,
             ];
         }
 
