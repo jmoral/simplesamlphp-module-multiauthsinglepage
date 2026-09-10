@@ -85,16 +85,20 @@ initial request.
 
 ## Customising the login page
 
-`templates/multiauthonepage.twig` shipped with the module is a starting point
-and is expected to be adapted to your theme. The controller passes it:
+`templates/multiauthonepage.twig` renders one form per configured source out
+of the box; override it in your theme to restyle it. The controller passes:
 
+* `sources` — one entry per configured source: `{ id, label, userpass }`,
+  where `label` is the source's `name` option (or its id) and `userpass` is
+  `true` for sources whose credentials are collected on this page
 * `stateParams` — hidden fields to repost (`AuthState`)
 * `errorcode` — error code of the last failed attempt, or `null`
 * `errorcodes` — `{ title: {...}, descr: {...} }` message maps for `errorcode`
 * `errorparams` — parameters for the error message translation
 
-The form must submit `authsource` (and `username` / `password` for a
-username/password source) back to the same URL together with `stateParams`.
+Each form must submit `authsource` (and `username` / `password` when
+`userpass` is `true`) back to the same URL together with `stateParams`. Only
+`authsource` values listed in the source's `sources` option are accepted.
 
 ## License
 

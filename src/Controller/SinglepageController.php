@@ -8,6 +8,7 @@ use SimpleSAML\Auth;
 use SimpleSAML\Auth\Source;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error;
+use SimpleSAML\Logger;
 use SimpleSAML\Module\ldap\Auth\Source\Ldap;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage as SourceMultiauthsinglepage;
 use SimpleSAML\Session;
@@ -68,6 +69,10 @@ class SinglepageController
         }
         $stateId = self::getParam($request, 'AuthState') ?? '';
         $state = $this->authState::loadState($stateId, SourceMultiauthsinglepage::STAGEID);
+
+        /** @var string[] $sources */
+        $sources = $state[SourceMultiauthsinglepage::SOURCESID] ?? [];
+
         $t = new Template($this->config, 'multiauthsinglepage:multiauthonepage.twig');
         $authsourceId = self::getParam($request, 'authsource');
         $errorCode = null;
@@ -75,6 +80,9 @@ class SinglepageController
         if ($authsourceId !== null) {
             // attempt to log in
             try {
+                if ($sources !== [] && !in_array($authsourceId, $sources, true)) {
+                    throw new Error\BadRequest('wrong authsource parameter.');
+                }
                 $as = Source::getById($authsourceId);
                 if (is_null($as)) {
                     throw new Error\BadRequest('wrong authsource parameter.');
@@ -91,6 +99,7 @@ class SinglepageController
                 $errorParams = $e->getParameters();
             }
         }
+        $t->data['sources'] = $this->describeSources($sources);
         $t->data['errorcode'] = $errorCode;
         $t->data['errorcodes'] = (new Error\ErrorCodes())->getAllMessages();
         $t->data['errorparams'] = $errorParams;
@@ -107,5 +116,65 @@ class SinglepageController
     private static function getParam(Request $request, string $key): ?string
     {
         return $request->query->get($key) ?? $request->request->get($key);
+    }
+
+
+    /**
+     * Turn the configured list of authsource ids into the data the login page needs:
+     * an id, a display label and whether the source takes a username/password inline.
+     *
+     * @param string[] $sources
+     *
+     * @return list<array{id: string, label: string, userpass: bool}>
+     */
+    private function describeSources(array $sources): array
+    {
+        $described = [];
+        foreach ($sources as $id) {
+            if (!is_string($id)) {
+                continue;
+            }
+            try {
+                $as = Source::getById($id);
+            } catch (\Exception $e) {
+                Logger::debug('Multiauthsinglepage - skipping source ' . $id . ': ' . $e->getMessage());
+                continue;
+            }
+            if ($as === null) {
+                continue;
+            }
+            $described[] = [
+                'id' => $id,
+                'label' => self::sourceLabel($id),
+                // Username/password sources are prompted inline; other sources redirect.
+                // Kept in sync with the dispatch in main() (currently: Ldap only).
+                'userpass' => $as instanceof Ldap,
+            ];
+        }
+
+        return $described;
+    }
+
+
+    /**
+     * Best-effort display label for an authsource: its "name" option, otherwise its id.
+     */
+    private static function sourceLabel(string $id): string
+    {
+        try {
+            $name = Configuration::getConfig('authsources.php')->getArray($id, [])['name'] ?? null;
+        } catch (\Exception $e) {
+            return $id;
+        }
+        if (is_string($name) && $name !== '') {
+            return $name;
+        }
+        if (is_array($name) && $name !== []) {
+            $first = reset($name);
+
+            return is_string($first) && $first !== '' ? $first : $id;
+        }
+
+        return $id;
     }
 }

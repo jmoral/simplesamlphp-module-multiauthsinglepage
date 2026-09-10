@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- The `sources` option is now wired through to the login page: the controller
+  passes a `sources` list (`id`, `label`, `userpass`) to the template, which
+  renders one form per source. `authsource` values not in `sources` are
+  rejected.
 - Tests for the `Multiauthsinglepage` authentication source (constructor
   validation, credential guard, session handling, logout error path).
 

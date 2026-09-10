@@ -73,6 +73,8 @@ class Multiauthsinglepage extends SP
         Logger::debug("Multiauthsinglepage - authenticate");
         // We are going to need the authId in order to retrieve this authentication source later
         $state[self::AUTHID] = $this->authId;
+        // The configured sources, so the login page knows what to offer.
+        $state[self::SOURCESID] = $this->sources;
 
         $id = Auth\State::saveState($state, self::STAGEID);
         $url = Module::getModuleURL('multiauthsinglepage/login');

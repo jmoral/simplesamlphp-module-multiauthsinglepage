@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use SimpleSAML\Auth;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error;
+use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage;
 use SimpleSAML\Module\multiauthsinglepage\Controller;
 use SimpleSAML\Session;
 use SimpleSAML\Test\Module\multiauthsinglepage\fixtures\Source\SuccessAuthSource;
@@ -141,6 +142,59 @@ class SinglepageControllerTest extends TestCase
         $response = $c->main($request);
 
         $this->assertInstanceOf(Template::class, $response);
+        $this->assertSame('BADREQUEST', $response->data['errorcode']);
+    }
+
+
+    /**
+     * The configured sources from the state are described and passed to the template.
+     *
+     * @return void
+     */
+    public function testConfiguredSourcesReachTheTemplate(): void
+    {
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $request = Request::create(self::URI_LOGIN, 'GET', ['AuthState' => 'abc123']);
+
+        $c = new Controller\SinglepageController($this->config, $this->session);
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [Multiauthsinglepage::SOURCESID => ['success-as']];
+            }
+        });
+        $response = $c->main($request);
+
+        $this->assertSame(
+            [['id' => 'success-as', 'label' => 'success-as', 'userpass' => false]],
+            $response->data['sources'],
+        );
+    }
+
+
+    /**
+     * An authsource that is not in the configured "sources" list is rejected.
+     *
+     * @return void
+     */
+    public function testAuthSourceOutsideConfiguredListIsRejected(): void
+    {
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $request = Request::create(
+            self::URI_LOGIN,
+            'GET',
+            ['AuthState' => 'abc123', 'authsource' => 'dummy-as'],
+        );
+
+        $c = new Controller\SinglepageController($this->config, $this->session);
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [Multiauthsinglepage::SOURCESID => ['success-as']];
+            }
+        });
+        $response = $c->main($request);
+
         $this->assertSame('BADREQUEST', $response->data['errorcode']);
     }
 }
