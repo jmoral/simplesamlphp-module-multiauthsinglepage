@@ -26,8 +26,8 @@ class SinglepageController
      *
      * It initializes the global configuration and session for the controllers implemented here.
      *
-     * @param Configuration $config The configuration to use by the controllers.
-     * @param Session $session The session to use by the controllers.
+     * @param \SimpleSAML\Configuration $config The configuration to use by the controllers.
+     * @param \SimpleSAML\Session $session The session to use by the controllers.
      *
      * @throws \Exception
      */
@@ -39,9 +39,9 @@ class SinglepageController
 
 
     /**
-     * @var Auth\State|string
+     * @var \SimpleSAML\Auth\State|string
      *
-     * @psalm-var Auth\State|class-string
+     * @psalm-var \SimpleSAML\Auth\State|class-string
      */
     protected $authState = Auth\State::class;
 

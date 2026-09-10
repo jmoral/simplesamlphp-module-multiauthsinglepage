@@ -25,7 +25,7 @@ class SinglepageControllerTest extends TestCase
     protected Session $session;
 
 
-    private const URI_LOGIN = '/module.php/multiauthsinglepage/login';
+    private const string URI_LOGIN = '/module.php/multiauthsinglepage/login';
 
 
     /**
@@ -79,7 +79,7 @@ class SinglepageControllerTest extends TestCase
         $c = new Controller\SinglepageController($this->config, $this->session);
 
         $this->expectException(Error\BadRequest::class);
-        $this->expectExceptionMessage("BADREQUEST('%REASON%' => 'Missing AuthState parameter.')");
+        $this->expectExceptionMessage('Missing AuthState parameter.');
 
         $c->main($request);
     }
@@ -111,23 +111,23 @@ class SinglepageControllerTest extends TestCase
 
         $this->assertTrue($response->isSuccessful());
         $this->assertInstanceOf(Template::class, $response);
-        $this->assertEmpty($response->data['errorTitle']);
+        $this->assertNull($response->data['errorcode']);
         $this->assertEquals($stateParams, $response->data['stateParams']);
     }
 
 
     /**
-     * Test authsource selected.
+     * Test that an unknown authsource is reported as a BADREQUEST error code.
      *
      * @return void
      */
-    public function testAuthSourceSelected(): void
+    public function testWrongAuthSource(): void
     {
         $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
         $request = Request::create(
             self::URI_LOGIN,
             'GET',
-            ['AuthState' => 'abc123', 'authsource' => 'singlepage-as'],
+            ['AuthState' => 'abc123', 'authsource' => 'does-not-exist'],
         );
 
         $c = new Controller\SinglepageController($this->config, $this->session);
@@ -139,8 +139,7 @@ class SinglepageControllerTest extends TestCase
         });
         $response = $c->main($request);
 
-        $this->assertTrue($response->isSuccessful());
         $this->assertInstanceOf(Template::class, $response);
-        $this->assertEmpty($response->data['errorTitle']);
+        $this->assertSame('BADREQUEST', $response->data['errorcode']);
     }
 }

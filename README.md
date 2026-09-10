@@ -4,7 +4,8 @@ This module try to identify an user multiple AuthSources in a single page.
 
 ## Requirements
 
-* PHP>=8.0
+* PHP >= 8.3
+* SimpleSAMLphp >= 2.5.2
 
 ## Installation
 

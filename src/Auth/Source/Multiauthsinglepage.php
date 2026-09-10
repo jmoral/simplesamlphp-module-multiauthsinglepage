@@ -20,22 +20,22 @@ class Multiauthsinglepage extends SP
     /**
      * The key of the AuthId field in the state.
      */
-    public const AUTHID = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.AuthId';
+    public const string AUTHID = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.AuthId';
 
     /**
      * The string used to identify our states.
      */
-    public const STAGEID = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.StageId';
+    public const string STAGEID = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.StageId';
 
     /**
      * The key where the sources is saved in the state.
      */
-    public const SOURCESID = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.SourceId';
+    public const string SOURCESID = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.SourceId';
 
     /**
      * The key where the selected source is saved in the session.
      */
-    public const SESSION_SOURCE = 'multiauth:selectedSource';
+    public const string SESSION_SOURCE = 'multiauth:selectedSource';
 
 
     /**
@@ -68,7 +68,7 @@ class Multiauthsinglepage extends SP
      *
      * @param array &$state Information about the current authentication.
      */
-    public function authenticate(array &$state): void
+    public function authenticate(array &$state): never
     {
         Logger::debug("Multiauthsinglepage - authenticate");
         // We are going to need the authId in order to retrieve this authentication source later
