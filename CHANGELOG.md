@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0-rc.1] - 2026-09-14
+
+Pre-release for testing against a full pre-production SimpleSAMLphp
+environment.
+
 ### Added
 
 - Failed login attempts against a username/password source can now be
@@ -80,5 +85,6 @@ to `handleUserPassLogin()` and retyped.
 
 For releases up to and including v1.0.7, see the Git history and tags.
 
-[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.1...HEAD
+[2.1.0-rc.1]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.0.0...v2.1.0-rc.1
 [2.0.0]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v1.0.7...v2.0.0
