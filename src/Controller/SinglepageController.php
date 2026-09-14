@@ -139,7 +139,7 @@ class SinglepageController
             try {
                 $as = Source::getById($id);
             } catch (\Exception $e) {
-                Logger::debug('Multiauthsinglepage - skipping source ' . $id . ': ' . $e->getMessage());
+                Logger::warning('Multiauthsinglepage - skipping source ' . $id . ': ' . $e->getMessage());
                 continue;
             }
             if ($as === null) {

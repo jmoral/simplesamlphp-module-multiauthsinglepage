@@ -46,12 +46,13 @@ $config = [
         ],
     ],
 
-    // Any username/password source (sqlauth:SQL, core:AdminPassword, ...) works
-    // and is authenticated on the single page. An ldap: source can be configured
-    // as multiauthsinglepage:LdapSinglePage so the module reaches its login()
-    // without reflection.
+    // Any username/password source (ldap:Ldap, sqlauth:SQL, core:AdminPassword, ...)
+    // works and is authenticated on the single page. Configure it exactly as you
+    // would outside this module: ldap:Ldap, not a custom subclass, since
+    // SimpleSAML\Module\ldap\ConnectorFactory requires the type to literally be
+    // "ldap:Ldap".
     'ldap' => [
-        'multiauthsinglepage:LdapSinglePage',
+        'ldap:Ldap',
         'connection_string' => 'ldap://ldap.example.org',
         'search.base' => 'ou=people,dc=example,dc=org',
         // ... the usual ldap: options

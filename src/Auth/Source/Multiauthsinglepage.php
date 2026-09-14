@@ -130,13 +130,11 @@ class Multiauthsinglepage extends SP
         }
         try {
             self::setSessionSource($source, $state);
-            if ($source instanceof LdapSinglePage) {
-                $result = $source->loginSinglePage($username, $pass);
-            } else {
-                // UserPassBase::login() is protected. An ldap: source can be configured as
-                // "multiauthsinglepage:LdapSinglePage" to avoid this reflection call.
-                $result = (new \ReflectionMethod($source, 'login'))->invoke($source, $username, $pass);
-            }
+            // UserPassBase::login() is protected; there is no public API to call it, so we
+            // reach it via reflection. (A subclass exposing a public wrapper does not work
+            // for ldap:Ldap sources: SimpleSAML\Module\ldap\ConnectorFactory::fromAuthSource()
+            // requires the authsource's configured type to literally be "ldap:Ldap".)
+            $result = (new \ReflectionMethod($source, 'login'))->invoke($source, $username, $pass);
             Logger::stats("Multiauthsinglepage - handleUserPassLogin $username login success");
         } catch (Error\Exception $e) {
             $msg = "Multiauthsinglepage - handleUserPassLogin $username unsuccessful login attempt.";

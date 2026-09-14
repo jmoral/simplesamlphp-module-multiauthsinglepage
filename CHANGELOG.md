@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-rc.2] - 2026-09-14
+
+Found while testing v2.0.0-rc.1 against a full pre-production SimpleSAMLphp
+environment.
+
+### Fixed
+
+- **Removed `LdapSinglePage`.** It could never construct: an `ldap:Ldap`
+  subclass configured under any other authsource type (such as
+  `multiauthsinglepage:LdapSinglePage`) fails, because
+  `SimpleSAML\Module\ldap\ConnectorFactory::fromAuthSource()` asserts the
+  authsource's configured type is literally `"ldap:Ldap"` — regardless of the
+  PHP class hierarchy. Configure LDAP sources as plain `ldap:Ldap`;
+  `handleUserPassLogin()` now always reaches `login()` through reflection
+  (this was already the fallback for every other `UserPassBase` source).
+- Raised the "skipping source" log for a source that fails to load from
+  `debug` to `warning`, so a misconfiguration like the above is visible
+  without turning on debug logging.
+
 ## [2.0.0-rc.1] - 2026-09-11
 
 This is a pre-release for testing against full SimpleSAMLphp pre-production
@@ -58,5 +77,6 @@ environments; expect breaking changes relative to v1.0.7 (minimum PHP is now
 
 For releases up to and including v1.0.7, see the Git history and tags.
 
-[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.0.0-rc.1...HEAD
+[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.0.0-rc.2...HEAD
+[2.0.0-rc.2]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.0.0-rc.1...v2.0.0-rc.2
 [2.0.0-rc.1]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v1.0.7...v2.0.0-rc.1
