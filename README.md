@@ -102,6 +102,41 @@ Each form must submit `authsource` (and `username` / `password` when
 `userpass` is `true`) back to the same URL together with `stateParams`. Only
 `authsource` values listed in the source's `sources` option are accepted.
 
+## Registering failed login attempts
+
+When a username/password source rejects the submitted credentials, the module
+can report the attempt to an external webservice. It is disabled unless a
+`url` is configured; a failure talking to the webservice is only logged, it
+never affects the login flow.
+
+```php
+'single-page' => [
+    'multiauthsinglepage:Multiauthsinglepage',
+    'entityID' => 'https://example.org/saml/sp/multiauthsinglepage',
+    'sources' => ['ldap', 'example-idp'],
+
+    'accessLog' => [
+        'url' => 'https://webservice.example.org/endpoint',
+        'apiKey' => 'xxxxxxxx',            // optional, sent as an "apiKey" header
+        'sistemaAutenticacion' => 'LDAP-UJA', // optional, default "contraseña"
+        'idpExterno' => 'no aplica',          // optional, default "no aplica"
+        'verifySsl' => true,                  // optional, default true
+        'connectTimeout' => 10,                // optional, seconds, default 10
+        'timeout' => 20,                       // optional, seconds, default 20
+    ],
+],
+```
+
+For each rejected attempt the module POSTs (as `application/x-www-form-urlencoded`)
+`destino` (the submitted username, or `"desconocido"`), `a` (always
+`registraAcceso1faFallido`), `origen` (the client's IP address),
+`serviceProvider` (the requesting SP's entityID, from `$state['core:SP']`),
+`sistemaAutenticacion` and `idpExterno` (the two config values above).
+
+This only covers username/password sources rejecting a login attempt (e.g. a
+wrong LDAP password); it does not cover a redirect-style source (`saml:SP`)
+failing on its own side.
+
 ## License
 
 LGPL-2.1-or-later. See [LICENSE](LICENSE).

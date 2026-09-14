@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Failed login attempts against a username/password source can now be
+  reported to an external webservice, via the new `accessLog` authsource
+  option (`url`, `apiKey`, `sistemaAutenticacion`, `idpExterno`,
+  `verifySsl`, `connectTimeout`, `timeout`). Disabled unless a `url` is
+  configured; a failure talking to the webservice is only logged and never
+  affects the login flow. See the new `\SimpleSAML\Module\multiauthsinglepage\AccessLogger`
+  and the README.
+- `ext-curl` added to `composer.json` (used by `AccessLogger`).
+
 ## [2.0.0] - 2026-09-14
 
 Verified against a full pre-production SimpleSAMLphp environment (as

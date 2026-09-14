@@ -10,6 +10,7 @@ use SimpleSAML\Error;
 use SimpleSAML\Logger;
 use SimpleSAML\Module;
 use SimpleSAML\Module\core\Auth\UserPassBase;
+use SimpleSAML\Module\multiauthsinglepage\AccessLogger;
 use SimpleSAML\Module\saml\Auth\Source\SP;
 use SimpleSAML\Session;
 use SimpleSAML\Utils\HTTP;
@@ -37,11 +38,23 @@ class Multiauthsinglepage extends SP
      */
     public const string SESSION_SOURCE = 'multiauth:selectedSource';
 
+    /**
+     * The key where the "accessLog" config is saved in the state.
+     */
+    public const string ACCESSLOG = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.AccessLog';
+
 
     /**
      * @var string[] $sources
      */
     private array $sources;
+
+    /**
+     * The "accessLog" config option; see \SimpleSAML\Module\multiauthsinglepage\AccessLogger.
+     *
+     * @var array<string, mixed>
+     */
+    private array $accessLog;
 
 
     /**
@@ -60,6 +73,7 @@ class Multiauthsinglepage extends SP
         );
 
         $this->sources = $config['sources'];
+        $this->accessLog = $config['accessLog'] ?? [];
     }
 
 
@@ -75,6 +89,8 @@ class Multiauthsinglepage extends SP
         $state[self::AUTHID] = $this->authId;
         // The configured sources, so the login page knows what to offer.
         $state[self::SOURCESID] = $this->sources;
+        // The access-log webservice config, so a failed attempt can be reported.
+        $state[self::ACCESSLOG] = $this->accessLog;
 
         $id = Auth\State::saveState($state, self::STAGEID);
         $url = Module::getModuleURL('multiauthsinglepage/login');
@@ -140,6 +156,8 @@ class Multiauthsinglepage extends SP
             $msg = "Multiauthsinglepage - handleUserPassLogin $username unsuccessful login attempt.";
             Logger::debug($msg . $e->getMessage());
             Logger::stats($msg);
+            $accessLog = new AccessLogger($state[self::ACCESSLOG] ?? []);
+            $accessLog->registerFailedAttempt($username, $state['core:SP'] ?? null);
             throw $e;
         }
         $state['Attributes'] = $result;
