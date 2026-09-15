@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0-rc.2] - 2026-09-15
+
+### Changed
+
+- `AccessLogger`'s default `connectTimeout`/`timeout` lowered from 10s/20s to
+  2s/3s. The webservice call is still synchronous (it runs inline in
+  `handleUserPassLogin()`), so a slow or unreachable webservice must not add
+  more than a couple of seconds to a failed login.
+
 ## [2.1.0-rc.1] - 2026-09-14
 
 Pre-release for testing against a full pre-production SimpleSAMLphp
@@ -85,6 +94,7 @@ to `handleUserPassLogin()` and retyped.
 
 For releases up to and including v1.0.7, see the Git history and tags.
 
-[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.1...HEAD
+[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.2...HEAD
+[2.1.0-rc.2]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.1...v2.1.0-rc.2
 [2.1.0-rc.1]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.0.0...v2.1.0-rc.1
 [2.0.0]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v1.0.7...v2.0.0

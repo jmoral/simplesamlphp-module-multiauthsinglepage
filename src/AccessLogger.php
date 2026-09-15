@@ -20,6 +20,17 @@ class AccessLogger
      */
     public const string ACTION_FAILED_ATTEMPT = 'registraAcceso1faFallido';
 
+    /**
+     * Default "connectTimeout": this call must never make a failed login noticeably
+     * slower for the user, so it fails fast rather than waiting like a normal request.
+     */
+    public const int DEFAULT_CONNECT_TIMEOUT = 2;
+
+    /**
+     * Default "timeout" (total, connect included). See DEFAULT_CONNECT_TIMEOUT.
+     */
+    public const int DEFAULT_TIMEOUT = 3;
+
 
     /**
      * @var callable(string $url, array<string, string> $params, array<string, mixed> $config): void
@@ -34,8 +45,8 @@ class AccessLogger
      *      - sistemaAutenticacion (string, optional, default "contraseña")
      *      - idpExterno (string, optional, default "no aplica")
      *      - verifySsl (bool, optional, default true)
-     *      - connectTimeout (int, optional, default 10)
-     *      - timeout (int, optional, default 20)
+     *      - connectTimeout (int, optional, seconds, default self::DEFAULT_CONNECT_TIMEOUT)
+     *      - timeout (int, optional, seconds, default self::DEFAULT_TIMEOUT)
      * @param (callable(string, array<string, string>, array<string, mixed>): void)|null $transport
      *      How to actually perform the HTTP request; defaults to a cURL POST. Overridable
      *      for tests.
@@ -108,8 +119,9 @@ class AccessLogger
             curl_setopt($ch, CURLOPT_POST, true);
             curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, (int) ($config['connectTimeout'] ?? 10));
-            curl_setopt($ch, CURLOPT_TIMEOUT, (int) ($config['timeout'] ?? 20));
+            $connectTimeout = (int) ($config['connectTimeout'] ?? self::DEFAULT_CONNECT_TIMEOUT);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connectTimeout);
+            curl_setopt($ch, CURLOPT_TIMEOUT, (int) ($config['timeout'] ?? self::DEFAULT_TIMEOUT));
             if (($config['verifySsl'] ?? true) === false) {
                 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
                 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);

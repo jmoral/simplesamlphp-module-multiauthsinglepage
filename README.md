@@ -121,11 +121,15 @@ never affects the login flow.
         'sistemaAutenticacion' => 'LDAP-UJA', // optional, default "contraseña"
         'idpExterno' => 'no aplica',          // optional, default "no aplica"
         'verifySsl' => true,                  // optional, default true
-        'connectTimeout' => 10,                // optional, seconds, default 10
-        'timeout' => 20,                       // optional, seconds, default 20
+        'connectTimeout' => 2,                 // optional, seconds, default 2
+        'timeout' => 3,                        // optional, seconds, default 3
     ],
 ],
 ```
+
+The defaults are deliberately short: this call must never make a failed login
+noticeably slower for the user, so it fails fast rather than waiting like a
+normal request would.
 
 For each rejected attempt the module POSTs (as `application/x-www-form-urlencoded`)
 `destino` (the submitted username, or `"desconocido"`), `a` (always
