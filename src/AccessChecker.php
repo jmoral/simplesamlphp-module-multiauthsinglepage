@@ -7,22 +7,32 @@ namespace SimpleSAML\Module\multiauthsinglepage;
 use SimpleSAML\Logger;
 
 /**
- * Reports failed 1FA login attempts to an external access-control webservice.
+ * Asks an external access-control webservice whether a login attempt is
+ * allowed to proceed, before the credentials are checked against the
+ * authentication source.
  *
- * Configured through the "accessLog" option of the multiauthsinglepage:Multiauthsinglepage
- * authsource; disabled unless a "url" is given. Never lets a failure talking to the
- * webservice propagate: it is a side channel, not part of the authentication flow.
+ * Configured through the "accessControl" option of the
+ * multiauthsinglepage:Multiauthsinglepage authsource; disabled unless a
+ * "url" is given. A login attempt is only ever blocked by an explicit
+ * HTTP 429 response: any other failure talking to the webservice (timeout,
+ * connection error, unexpected status) fails open, so an unreachable
+ * webservice never locks every user out.
  */
-class AccessLogger
+class AccessChecker
 {
     /**
-     * The action value the webservice expects for a failed 1FA login attempt.
+     * The action value the webservice expects to check access conditions.
      */
-    public const string ACTION_FAILED_ATTEMPT = 'registraAcceso1faFallido';
+    public const string ACTION_CHECK = 'compruebaCondicionesAcceso';
 
     /**
-     * Default "connectTimeout": this call must never make a failed login noticeably
-     * slower for the user, so it fails fast rather than waiting like a normal request.
+     * The HTTP status the webservice uses to report "too many requests".
+     */
+    public const int STATUS_TOO_MANY_REQUESTS = 429;
+
+    /**
+     * Default "connectTimeout": this call runs inline before every login
+     * attempt, so it must never make the login page noticeably slower.
      */
     public const int DEFAULT_CONNECT_TIMEOUT = 2;
 
@@ -33,23 +43,21 @@ class AccessLogger
 
 
     /**
-     * @var callable(string $url, array<string, string> $params, array<string, mixed> $config): void
+     * @var callable(string $url, array<string, string> $params, array<string, mixed> $config): int
      */
     private $transport;
 
 
     /**
-     * @param array<string, mixed> $config The "accessLog" authsource config option:
+     * @param array<string, mixed> $config The "accessControl" authsource config option:
      *      - url (string, required to enable)
      *      - apiKey (string, optional)
-     *      - sistemaAutenticacion (string, optional, default "contraseña")
-     *      - idpExterno (string, optional, default "no aplica")
      *      - verifySsl (bool, optional, default true)
      *      - connectTimeout (int, optional, seconds, default self::DEFAULT_CONNECT_TIMEOUT)
      *      - timeout (int, optional, seconds, default self::DEFAULT_TIMEOUT)
-     * @param (callable(string, array<string, string>, array<string, mixed>): void)|null $transport
-     *      How to actually perform the HTTP request; defaults to a cURL POST. Overridable
-     *      for tests.
+     * @param (callable(string, array<string, string>, array<string, mixed>): int)|null $transport
+     *      How to actually perform the HTTP request and return the HTTP status code;
+     *      defaults to a cURL POST. Overridable for tests.
      */
     public function __construct(
         private readonly array $config,
@@ -60,7 +68,8 @@ class AccessLogger
 
 
     /**
-     * Whether an "url" was configured; when it was not, this class is a no-op.
+     * Whether an "url" was configured; when it was not, this class is a no-op
+     * and every attempt is allowed.
      */
     public function isEnabled(): bool
     {
@@ -69,35 +78,43 @@ class AccessLogger
 
 
     /**
-     * Register that $username failed to authenticate.
+     * Whether a login attempt for $username is currently allowed to proceed.
      *
      * @param string|null $username The username entered by the user, if any.
-     * @param string|null $serviceProvider The entityID of the service the user was trying
-     *      to reach ($state['core:SP']), if known.
+     * @param string|null $serviceProvider The entityID of the service the user is
+     *      trying to reach ($state['core:SP']), if known.
      */
-    public function registerFailedAttempt(?string $username, ?string $serviceProvider): void
+    public function isAllowed(?string $username, ?string $serviceProvider): bool
     {
         if (!$this->isEnabled()) {
-            return;
+            return true;
         }
 
         $params = [
             'destino' => $username ?? 'desconocido',
-            'a' => self::ACTION_FAILED_ATTEMPT,
+            'a' => self::ACTION_CHECK,
             'origen' => $_SERVER['REMOTE_ADDR'] ?? '',
             'serviceProvider' => $serviceProvider ?? '',
-            'sistemaAutenticacion' => (string) ($this->config['sistemaAutenticacion'] ?? 'contraseña'),
-            'idpExterno' => (string) ($this->config['idpExterno'] ?? 'no aplica'),
             'forwarded' => $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '',
             'podName' => (string) (getenv('POD_NAME') ?: ''),
             'nodeName' => (string) (getenv('NODE_NAME') ?: ''),
         ];
 
         try {
-            ($this->transport)((string) $this->config['url'], $params, $this->config);
+            $status = ($this->transport)((string) $this->config['url'], $params, $this->config);
         } catch (\Throwable $e) {
-            Logger::warning('Multiauthsinglepage - could not register the failed login attempt: ' . $e->getMessage());
+            Logger::warning('Multiauthsinglepage - could not check access conditions: ' . $e->getMessage());
+            return true;
         }
+
+        if ($status === self::STATUS_TOO_MANY_REQUESTS) {
+            return false;
+        }
+        if ($status < 200 || $status >= 300) {
+            Logger::warning('Multiauthsinglepage - access check returned unexpected HTTP status ' . $status);
+        }
+
+        return true;
     }
 
 
@@ -105,7 +122,7 @@ class AccessLogger
      * @param array<string, string> $params
      * @param array<string, mixed> $config
      */
-    private static function curlPost(string $url, array $params, array $config): void
+    private static function curlPost(string $url, array $params, array $config): int
     {
         $ch = curl_init($url);
         if ($ch === false) {
@@ -136,10 +153,7 @@ class AccessLogger
                 throw new \RuntimeException('curl error: ' . curl_error($ch));
             }
 
-            $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            if ($status < 200 || $status >= 300) {
-                throw new \RuntimeException('unexpected HTTP status ' . $status);
-            }
+            return (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         } finally {
             curl_close($ch);
         }

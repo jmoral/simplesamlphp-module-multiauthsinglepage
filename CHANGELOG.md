@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A login attempt against a username/password source can now be checked
+  against an external webservice *before* the credentials are validated, via
+  the new `accessControl` authsource option (`url`, `apiKey`, `verifySsl`,
+  `connectTimeout`, `timeout`). Disabled unless a `url` is configured. When
+  the webservice responds HTTP 429 ("too many requests"), the attempt is not
+  tried against the authentication source; the login page shows a generic
+  wait message with a per-username, per-session exponential backoff (2s, 4s,
+  8s, ... capped at 300s) instead. Any other failure talking to the
+  webservice fails open. This runs on every attempt regardless of outcome,
+  so it also covers users stuck in a wrong-password loop, unlike the
+  post-hoc `accessLog` reporting. See the new
+  `\SimpleSAML\Module\multiauthsinglepage\AccessChecker` and
+  `\SimpleSAML\Module\multiauthsinglepage\AccessBackoff`, and the README.
+- `SinglepageController` gained protected `makeAccessChecker()` /
+  `makeAccessBackoff()` factory methods, overridable in tests the same way
+  `setAuthState()` already is.
+- Both `AccessChecker` and `AccessLogger` now also send `forwarded` (the
+  `X-Forwarded-For` header, if any) and `podName`/`nodeName` (the
+  `POD_NAME`/`NODE_NAME` environment variables, if set) to the webservice,
+  to help identify the originating client and serving instance in a
+  clustered deployment.
+
+### Changed
+
+- `SinglepageController::checkAccessOrGetWaitSeconds()` now skips the
+  access-control check (and the backoff-reset session write) entirely when
+  no `accessControl.url` is configured, instead of calling the webservice
+  gate and resetting the backoff counter on every login attempt regardless.
+
 ## [2.1.0-rc.2] - 2026-09-15
 
 ### Changed

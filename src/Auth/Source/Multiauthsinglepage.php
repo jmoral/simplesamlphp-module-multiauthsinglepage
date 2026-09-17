@@ -43,6 +43,11 @@ class Multiauthsinglepage extends SP
      */
     public const string ACCESSLOG = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.AccessLog';
 
+    /**
+     * The key where the "accessControl" config is saved in the state.
+     */
+    public const string ACCESSCONTROL = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.AccessControl';
+
 
     /**
      * @var string[] $sources
@@ -55,6 +60,13 @@ class Multiauthsinglepage extends SP
      * @var array<string, mixed>
      */
     private array $accessLog;
+
+    /**
+     * The "accessControl" config option; see \SimpleSAML\Module\multiauthsinglepage\AccessChecker.
+     *
+     * @var array<string, mixed>
+     */
+    private array $accessControl;
 
 
     /**
@@ -74,6 +86,7 @@ class Multiauthsinglepage extends SP
 
         $this->sources = $config['sources'];
         $this->accessLog = $config['accessLog'] ?? [];
+        $this->accessControl = $config['accessControl'] ?? [];
     }
 
 
@@ -91,6 +104,8 @@ class Multiauthsinglepage extends SP
         $state[self::SOURCESID] = $this->sources;
         // The access-log webservice config, so a failed attempt can be reported.
         $state[self::ACCESSLOG] = $this->accessLog;
+        // The access-control webservice config, so an attempt can be checked before it is made.
+        $state[self::ACCESSCONTROL] = $this->accessControl;
 
         $id = Auth\State::saveState($state, self::STAGEID);
         $url = Module::getModuleURL('multiauthsinglepage/login');

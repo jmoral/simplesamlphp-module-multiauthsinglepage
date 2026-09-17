@@ -55,6 +55,9 @@ class AccessLoggerTest extends TestCase
                 'serviceProvider' => 'https://sp.example.org',
                 'sistemaAutenticacion' => 'contraseña',
                 'idpExterno' => 'no aplica',
+                'forwarded' => '',
+                'podName' => '',
+                'nodeName' => '',
             ],
             $sent[1],
         );

@@ -10,6 +10,8 @@ use SimpleSAML\Configuration;
 use SimpleSAML\Error;
 use SimpleSAML\Logger;
 use SimpleSAML\Module\core\Auth\UserPassBase;
+use SimpleSAML\Module\multiauthsinglepage\AccessBackoff;
+use SimpleSAML\Module\multiauthsinglepage\AccessChecker;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage as SourceMultiauthsinglepage;
 use SimpleSAML\Session;
 use SimpleSAML\XHTML\Template;
@@ -77,6 +79,7 @@ class SinglepageController
         $authsourceId = self::getParam($request, 'authsource');
         $errorCode = null;
         $errorParams = null;
+        $waitSeconds = null;
         if ($authsourceId !== null) {
             // attempt to log in
             try {
@@ -91,7 +94,10 @@ class SinglepageController
                     // Username/password source: collect the credentials on this page.
                     $username = self::getParam($request, 'username');
                     $pass = self::getParam($request, 'password');
-                    SourceMultiauthsinglepage::handleUserPassLogin($as, $state, $username, $pass);
+                    $waitSeconds = $this->checkAccessOrGetWaitSeconds($state, $username);
+                    if ($waitSeconds === null) {
+                        SourceMultiauthsinglepage::handleUserPassLogin($as, $state, $username, $pass);
+                    }
                 } else {
                     // Redirect-style source (SP, CAS, ...): hand over to it.
                     SourceMultiauthsinglepage::handleLogin($as, $state);
@@ -106,7 +112,54 @@ class SinglepageController
         $t->data['errorcodes'] = (new Error\ErrorCodes())->getAllMessages();
         $t->data['errorparams'] = $errorParams;
         $t->data['stateParams'] = ['AuthState' => $stateId];
+        $t->data['waitSeconds'] = $waitSeconds;
         return $t;
+    }
+
+
+    /**
+     * Checks, before any credentials are validated, whether a username/password
+     * login attempt is currently allowed to proceed. This runs on every attempt,
+     * successful or not, so a user stuck in a wrong-password loop is subject to
+     * the same backoff as anyone else once the access-control webservice starts
+     * reporting "too many requests" for them.
+     *
+     * @param array<mixed> $state
+     *
+     * @return int|null The number of seconds the login page should make the user
+     *      wait before trying again, or null when the attempt is allowed.
+     */
+    private function checkAccessOrGetWaitSeconds(array $state, ?string $username): ?int
+    {
+        $accessChecker = $this->makeAccessChecker($state[SourceMultiauthsinglepage::ACCESSCONTROL] ?? []);
+        if (!$accessChecker->isEnabled()) {
+            return null;
+        }
+
+        $accessBackoff = $this->makeAccessBackoff();
+        $key = $username ?? 'desconocido';
+
+        if ($accessChecker->isAllowed($username, $state['core:SP'] ?? null)) {
+            $accessBackoff->reset($key);
+            return null;
+        }
+
+        return $accessBackoff->registerBlock($key);
+    }
+
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    protected function makeAccessChecker(array $config): AccessChecker
+    {
+        return new AccessChecker($config);
+    }
+
+
+    protected function makeAccessBackoff(): AccessBackoff
+    {
+        return new AccessBackoff();
     }
 
 

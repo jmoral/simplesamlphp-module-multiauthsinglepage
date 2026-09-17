@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use SimpleSAML\Auth;
 use SimpleSAML\Configuration;
 use SimpleSAML\Error;
+use SimpleSAML\Module\multiauthsinglepage\AccessChecker;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage;
 use SimpleSAML\Module\multiauthsinglepage\Controller;
 use SimpleSAML\Session;
@@ -223,6 +224,81 @@ class SinglepageControllerTest extends TestCase
         });
         $response = $c->main($request);
 
+        $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
+    }
+
+
+    /**
+     * When the access-control webservice reports "too many requests" (429), the
+     * login attempt is not even tried against the authentication source, and the
+     * template gets a wait time instead of an error.
+     *
+     * @return void
+     */
+    public function testAccessControlBlocksLoginAttemptAndComputesBackoff(): void
+    {
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $request = Request::create(
+            self::URI_LOGIN,
+            'POST',
+            [
+                'AuthState' => 'abc123',
+                'authsource' => 'success-as',
+                'username' => 'alice',
+                'password' => 'secret',
+            ],
+        );
+
+        $c = new class ($this->config, $this->session) extends Controller\SinglepageController {
+            protected function makeAccessChecker(array $config): AccessChecker
+            {
+                return new AccessChecker(['url' => 'https://webservice.example.org/endpoint'], fn (): int => 429);
+            }
+        };
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [Multiauthsinglepage::SOURCESID => ['success-as']];
+            }
+        });
+        $response = $c->main($request);
+
+        $this->assertNull($response->data['errorcode']);
+        $this->assertSame(2, $response->data['waitSeconds']);
+    }
+
+
+    /**
+     * When the access-control webservice allows the attempt, the login proceeds
+     * as usual (here failing on the missing credentials, as in
+     * testUserPassSourceIsAuthenticatedInline), and no wait time is set.
+     *
+     * @return void
+     */
+    public function testAccessControlAllowsLoginWhenNotBlocked(): void
+    {
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $request = Request::create(
+            self::URI_LOGIN,
+            'POST',
+            ['AuthState' => 'abc123', 'authsource' => 'success-as'],
+        );
+
+        $c = new class ($this->config, $this->session) extends Controller\SinglepageController {
+            protected function makeAccessChecker(array $config): AccessChecker
+            {
+                return new AccessChecker(['url' => 'https://webservice.example.org/endpoint'], fn (): int => 200);
+            }
+        };
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [Multiauthsinglepage::SOURCESID => ['success-as']];
+            }
+        });
+        $response = $c->main($request);
+
+        $this->assertNull($response->data['waitSeconds']);
         $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
     }
 }

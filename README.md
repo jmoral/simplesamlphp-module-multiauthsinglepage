@@ -135,11 +135,65 @@ For each rejected attempt the module POSTs (as `application/x-www-form-urlencode
 `destino` (the submitted username, or `"desconocido"`), `a` (always
 `registraAcceso1faFallido`), `origen` (the client's IP address),
 `serviceProvider` (the requesting SP's entityID, from `$state['core:SP']`),
-`sistemaAutenticacion` and `idpExterno` (the two config values above).
+`sistemaAutenticacion` and `idpExterno` (the two config values above),
+`forwarded` (the `X-Forwarded-For` header, if any), and `podName` /
+`nodeName` (the `POD_NAME` / `NODE_NAME` environment variables, if set —
+useful to tell which instance handled the request in a clustered
+deployment).
 
 This only covers username/password sources rejecting a login attempt (e.g. a
 wrong LDAP password); it does not cover a redirect-style source (`saml:SP`)
 failing on its own side.
+
+## Blocking abusive login attempts (exponential backoff)
+
+Independently of `accessLog`, the module can ask an external webservice
+whether a username/password login attempt is allowed to proceed *before*
+the credentials are checked against the authentication source. This runs on
+every attempt, successful or not, so a wrong-password loop is subject to the
+same backoff as anyone else once the webservice starts rejecting the
+attempts.
+
+```php
+'single-page' => [
+    'multiauthsinglepage:Multiauthsinglepage',
+    'entityID' => 'https://example.org/saml/sp/multiauthsinglepage',
+    'sources' => ['ldap', 'example-idp'],
+
+    'accessControl' => [
+        'url' => 'https://webservice.example.org/endpoint',
+        'apiKey' => 'xxxxxxxx',  // optional, sent as an "apiKey" header
+        'verifySsl' => true,     // optional, default true
+        'connectTimeout' => 2,   // optional, seconds, default 2
+        'timeout' => 3,          // optional, seconds, default 3
+    ],
+],
+```
+
+Disabled unless a `url` is configured. Before dispatching a username/password
+attempt, the module POSTs `destino` (the submitted username, or
+`"desconocido"`), `a` (always `compruebaCondicionesAcceso`), `origen` (the
+client's IP address), `serviceProvider` (`$state['core:SP']`), `forwarded`
+(the `X-Forwarded-For` header, if any), and `podName` / `nodeName` (the
+`POD_NAME` / `NODE_NAME` environment variables, if set) to that `url`.
+
+* If the webservice responds with any status in the 2xx range, the attempt
+  proceeds as usual.
+* If it responds **HTTP 429**, the attempt is not tried against the
+  authentication source at all. The login page shows a generic "please wait"
+  message instead of the form's usual error, with a countdown computed
+  locally (per browser session, per username): 2s, 4s, 8s, 16s, ... capped at
+  300s, growing on every further attempt that is still rejected while the
+  counter for that username is not reset. It resets as soon as the
+  webservice allows an attempt again. Submit buttons are disabled client-side
+  for the duration of the countdown (progressive enhancement only: the
+  server re-checks on every submission regardless).
+* Any other outcome (timeout, connection error, unexpected status) **fails
+  open**: the attempt proceeds as if it had been allowed. An unreachable
+  webservice must never lock every user out.
+
+See `\SimpleSAML\Module\multiauthsinglepage\AccessChecker` and
+`\SimpleSAML\Module\multiauthsinglepage\AccessBackoff`.
 
 ## License
 
