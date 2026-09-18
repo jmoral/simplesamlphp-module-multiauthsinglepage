@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A new, always-on local throttle: after more than 3 consecutive failed
+  username/password login attempts for the same username (tracked per
+  browser session), further attempts are refused with an exponential
+  backoff wait (2s, 4s, 8s, ... capped at 300s, counted from the last
+  failure) until it elapses, without even reaching the authentication
+  source. This is independent of the `accessControl` webservice option and
+  always active. As with a webservice-triggered block, it is indistinguishable
+  from a plain wrong password to the user; only the server-side log (`error`
+  level) shows it happened. See the new
+  `\SimpleSAML\Module\multiauthsinglepage\LoginThrottle` and the README.
+
+### Changed
+
+- A blocked login attempt (`accessControl` webservice returning HTTP 429) no
+  longer shows a "please wait" message with a countdown: the login page now
+  shows the exact same generic wrong-username-or-password error as any other
+  rejected attempt, so an attacker cannot tell a backed-off attempt apart
+  from a plain wrong password. The computed wait time is only written to the
+  server-side log (`AccessBackoff`, at `error` level).
+- `AccessBackoff::registerBlock()` now logs the username, attempt number and
+  computed wait time at `error` level on every block.
+
 ## [2.1.0-rc.3] - 2026-09-17
 
 ### Added

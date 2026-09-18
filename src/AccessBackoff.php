@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SimpleSAML\Module\multiauthsinglepage;
 
+use SimpleSAML\Logger;
 use SimpleSAML\Session;
 
 /**
@@ -39,7 +40,12 @@ class AccessBackoff
         $attempts = is_null($attempts) ? 1 : $attempts + 1;
         $session->setData(self::SESSION_DATATYPE, $key, $attempts, self::COUNTER_TIMEOUT_SECONDS);
 
-        return (int) min(self::BASE_SECONDS * (2 ** ($attempts - 1)), self::MAX_SECONDS);
+        $wait = (int) min(self::BASE_SECONDS * (2 ** ($attempts - 1)), self::MAX_SECONDS);
+        Logger::error(
+            "Multiauthsinglepage - access blocked for user '$username', attempt #$attempts, waiting {$wait}s",
+        );
+
+        return $wait;
     }
 
 

@@ -17,36 +17,6 @@
     </div>
     {%- endif %}
 
-    {% if waitSeconds is not null -%}
-    <div class="message-box warning">
-        <p>{% trans %}Unusual activity has been detected on this access attempt. For security reasons, please wait before trying again.{% endtrans %}</p>
-        <p>
-            {% trans %}You will be able to try again in{% endtrans %}
-            <span id="multiauthsinglepage-wait-counter" data-seconds="{{ waitSeconds }}">{{ waitSeconds }}</span>
-            {% trans %}seconds{% endtrans %}
-        </p>
-    </div>
-    <script>
-    (function () {
-        var counter = document.getElementById('multiauthsinglepage-wait-counter');
-        var seconds = parseInt(counter.dataset.seconds, 10);
-        var buttons = document.querySelectorAll('button[type="submit"]');
-        buttons.forEach(function (b) { b.disabled = true; });
-
-        function tick() {
-            counter.textContent = seconds;
-            if (seconds <= 0) {
-                buttons.forEach(function (b) { b.disabled = false; });
-                return;
-            }
-            seconds--;
-            setTimeout(tick, 1000);
-        }
-        tick();
-    })();
-    </script>
-    {%- endif %}
-
     {% for source in sources -%}
     <form action="" method="post" class="pure-form pure-form-stacked" name="f_{{ source.id }}">
         {% for key, value in stateParams -%}

@@ -180,20 +180,38 @@ client's IP address), `serviceProvider` (`$state['core:SP']`), `forwarded`
 * If the webservice responds with any status in the 2xx range, the attempt
   proceeds as usual.
 * If it responds **HTTP 429**, the attempt is not tried against the
-  authentication source at all. The login page shows a generic "please wait"
-  message instead of the form's usual error, with a countdown computed
-  locally (per browser session, per username): 2s, 4s, 8s, 16s, ... capped at
-  300s, growing on every further attempt that is still rejected while the
-  counter for that username is not reset. It resets as soon as the
-  webservice allows an attempt again. Submit buttons are disabled client-side
-  for the duration of the countdown (progressive enhancement only: the
-  server re-checks on every submission regardless).
+  authentication source at all, and the login page shows the exact same
+  generic "wrong username or password" error as any other rejected attempt.
+  The block is deliberately never surfaced to the user: an attacker must not
+  be able to tell a backed-off attempt apart from a plain wrong password.
+  The wait time — 2s, 4s, 8s, 16s, ... capped at 300s, growing on every
+  further attempt that is still rejected, tracked per browser session and
+  per username, and reset as soon as the webservice allows an attempt again
+  — is only written to the server-side log (`AccessBackoff`, at `error`
+  level), for an administrator to act on.
 * Any other outcome (timeout, connection error, unexpected status) **fails
   open**: the attempt proceeds as if it had been allowed. An unreachable
   webservice must never lock every user out.
 
 See `\SimpleSAML\Module\multiauthsinglepage\AccessChecker` and
 `\SimpleSAML\Module\multiauthsinglepage\AccessBackoff`.
+
+### Local throttling, independent of `accessControl`
+
+Regardless of whether `accessControl` is configured, the module always
+enforces its own exponential backoff after too many consecutive failed
+username/password attempts for the same username, tracked per browser
+session: the first 3 failures are free, and from the 4th one onward a
+further attempt is only let through once the wait — 2s, 4s, 8s, ... capped
+at 300s, counted from the last failure — has elapsed. A successful login
+resets the counter. As with `accessControl`, a throttled attempt is
+indistinguishable from a plain wrong password to the user; the block is
+only visible in the server-side log (`error` level). See
+`\SimpleSAML\Module\multiauthsinglepage\LoginThrottle`.
+
+Because the counter lives in the browser session, it does not survive the
+user starting a fresh session (e.g. a new browser or private window), so it
+complements rather than replaces `accessControl` for a determined attacker.
 
 ## License
 

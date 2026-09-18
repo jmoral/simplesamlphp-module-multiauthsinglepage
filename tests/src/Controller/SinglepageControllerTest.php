@@ -12,6 +12,7 @@ use SimpleSAML\Module\multiauthsinglepage\AccessChecker;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage;
 use SimpleSAML\Module\multiauthsinglepage\Controller;
 use SimpleSAML\Session;
+use SimpleSAML\Test\Module\multiauthsinglepage\fixtures\Source\FailAuthSource;
 use SimpleSAML\Test\Module\multiauthsinglepage\fixtures\Source\SuccessAuthSource;
 use SimpleSAML\XHTML\Template;
 use Symfony\Component\HttpFoundation\Request;
@@ -59,6 +60,9 @@ class SinglepageControllerTest extends TestCase
             ],
             'success-as' => [
                 SuccessAuthSource::class,
+            ],
+            'fail-as' => [
+                FailAuthSource::class,
             ],
         ]);
 
@@ -229,13 +233,68 @@ class SinglepageControllerTest extends TestCase
 
 
     /**
-     * When the access-control webservice reports "too many requests" (429), the
-     * login attempt is not even tried against the authentication source, and the
-     * template gets a wait time instead of an error.
+     * After more than three consecutive failed attempts for the same username (in
+     * the same browser session), LoginThrottle blocks further attempts locally
+     * with an exponential backoff wait -- entirely independent of "accessControl".
+     * The blocked attempt never even reaches the authentication source: the login
+     * page shows the same generic WRONGUSERPASS either way.
      *
      * @return void
      */
-    public function testAccessControlBlocksLoginAttemptAndComputesBackoff(): void
+    public function testRepeatedFailuresAreThrottledLocallyAfterThreeAttempts(): void
+    {
+        FailAuthSource::$callCount = 0;
+        $username = 'alice-' . uniqid();
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+
+        $makeRequest = fn (): Request => Request::create(
+            self::URI_LOGIN,
+            'POST',
+            [
+                'AuthState' => 'abc123',
+                'authsource' => 'fail-as',
+                'username' => $username,
+                'password' => 'wrong',
+            ],
+        );
+        $c = new Controller\SinglepageController($this->config, $this->session);
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [
+                    Multiauthsinglepage::SOURCESID => ['fail-as'],
+                    Multiauthsinglepage::AUTHID => 'singlepage-as',
+                ];
+            }
+        });
+
+        // The first four attempts are genuinely tried against the source (three
+        // free, the fourth is the one that pushes the count past the threshold).
+        for ($i = 0; $i < 4; $i++) {
+            $response = $c->main($makeRequest());
+            $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
+        }
+        $this->assertSame(4, FailAuthSource::$callCount);
+
+        // The fifth attempt is blocked by LoginThrottle before it ever reaches the
+        // source: the call count does not increase, yet the user sees no
+        // difference in the response.
+        $response = $c->main($makeRequest());
+        $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
+        $this->assertSame(4, FailAuthSource::$callCount);
+    }
+
+
+    /**
+     * When the access-control webservice reports "too many requests" (429), the
+     * login attempt is not even tried against the authentication source, and the
+     * user sees the same generic wrong-password error as any other rejected
+     * attempt: the block itself is never surfaced to them, only written to the
+     * (server-side) log by AccessBackoff::registerBlock().
+     *
+     * @return void
+     */
+    public function testAccessControlBlocksLoginAttemptWithoutRevealingIt(): void
     {
         $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
         $request = Request::create(
@@ -263,15 +322,14 @@ class SinglepageControllerTest extends TestCase
         });
         $response = $c->main($request);
 
-        $this->assertNull($response->data['errorcode']);
-        $this->assertSame(2, $response->data['waitSeconds']);
+        $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
     }
 
 
     /**
      * When the access-control webservice allows the attempt, the login proceeds
      * as usual (here failing on the missing credentials, as in
-     * testUserPassSourceIsAuthenticatedInline), and no wait time is set.
+     * testUserPassSourceIsAuthenticatedInline).
      *
      * @return void
      */
@@ -298,7 +356,6 @@ class SinglepageControllerTest extends TestCase
         });
         $response = $c->main($request);
 
-        $this->assertNull($response->data['waitSeconds']);
         $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
     }
 }

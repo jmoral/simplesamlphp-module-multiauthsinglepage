@@ -79,7 +79,6 @@ class SinglepageController
         $authsourceId = self::getParam($request, 'authsource');
         $errorCode = null;
         $errorParams = null;
-        $waitSeconds = null;
         if ($authsourceId !== null) {
             // attempt to log in
             try {
@@ -94,10 +93,14 @@ class SinglepageController
                     // Username/password source: collect the credentials on this page.
                     $username = self::getParam($request, 'username');
                     $pass = self::getParam($request, 'password');
-                    $waitSeconds = $this->checkAccessOrGetWaitSeconds($state, $username);
-                    if ($waitSeconds === null) {
-                        SourceMultiauthsinglepage::handleUserPassLogin($as, $state, $username, $pass);
+                    if ($this->isAccessBlocked($state, $username)) {
+                        // Deliberately indistinguishable from a wrong password: an attacker
+                        // must not be able to tell they are being backed off from someone who
+                        // simply mistyped their password. The block is only ever visible in
+                        // the (server-side) log written by AccessBackoff::registerBlock().
+                        throw new Error\Error(Error\ErrorCodes::WRONGUSERPASS);
                     }
+                    SourceMultiauthsinglepage::handleUserPassLogin($as, $state, $username, $pass);
                 } else {
                     // Redirect-style source (SP, CAS, ...): hand over to it.
                     SourceMultiauthsinglepage::handleLogin($as, $state);
@@ -112,7 +115,6 @@ class SinglepageController
         $t->data['errorcodes'] = (new Error\ErrorCodes())->getAllMessages();
         $t->data['errorparams'] = $errorParams;
         $t->data['stateParams'] = ['AuthState' => $stateId];
-        $t->data['waitSeconds'] = $waitSeconds;
         return $t;
     }
 
@@ -124,16 +126,18 @@ class SinglepageController
      * the same backoff as anyone else once the access-control webservice starts
      * reporting "too many requests" for them.
      *
-     * @param array<mixed> $state
+     * A block is never surfaced to the caller beyond this boolean: the login page
+     * shows the same generic wrong-password error either way, so an attacker
+     * cannot use it to detect the backoff. The wait time itself is only written to
+     * the (server-side) log, by AccessBackoff::registerBlock().
      *
-     * @return int|null The number of seconds the login page should make the user
-     *      wait before trying again, or null when the attempt is allowed.
+     * @param array<mixed> $state
      */
-    private function checkAccessOrGetWaitSeconds(array $state, ?string $username): ?int
+    private function isAccessBlocked(array $state, ?string $username): bool
     {
         $accessChecker = $this->makeAccessChecker($state[SourceMultiauthsinglepage::ACCESSCONTROL] ?? []);
         if (!$accessChecker->isEnabled()) {
-            return null;
+            return false;
         }
 
         $accessBackoff = $this->makeAccessBackoff();
@@ -141,10 +145,11 @@ class SinglepageController
 
         if ($accessChecker->isAllowed($username, $state['core:SP'] ?? null)) {
             $accessBackoff->reset($key);
-            return null;
+            return false;
         }
 
-        return $accessBackoff->registerBlock($key);
+        $accessBackoff->registerBlock($key);
+        return true;
     }
 
 

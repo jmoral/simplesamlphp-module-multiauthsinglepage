@@ -11,6 +11,7 @@ use SimpleSAML\Logger;
 use SimpleSAML\Module;
 use SimpleSAML\Module\core\Auth\UserPassBase;
 use SimpleSAML\Module\multiauthsinglepage\AccessLogger;
+use SimpleSAML\Module\multiauthsinglepage\LoginThrottle;
 use SimpleSAML\Module\saml\Auth\Source\SP;
 use SimpleSAML\Session;
 use SimpleSAML\Utils\HTTP;
@@ -156,7 +157,18 @@ class Multiauthsinglepage extends SP
         ?string $pass,
     ): void {
         Logger::debug("Multiauthsinglepage - handleUserPassLogin $username login attempt");
+
+        // Independently of the "accessControl" webservice (checked earlier, in the
+        // controller): a local, always-on backoff after too many consecutive failed
+        // attempts for this username in this browser session.
+        $throttleKey = $username ?? 'desconocido';
+        $throttle = new LoginThrottle();
+        if ($throttle->isBlocked($throttleKey)) {
+            throw new Error\Error(Error\ErrorCodes::WRONGUSERPASS);
+        }
+
         if ($username === null || $pass === null) {
+            $throttle->registerFailedAttempt($throttleKey);
             throw new Error\Error(Error\ErrorCodes::WRONGUSERPASS);
         }
         try {
@@ -173,8 +185,10 @@ class Multiauthsinglepage extends SP
             Logger::stats($msg);
             $accessLog = new AccessLogger($state[self::ACCESSLOG] ?? []);
             $accessLog->registerFailedAttempt($username, $state['core:SP'] ?? null);
+            $throttle->registerFailedAttempt($throttleKey);
             throw $e;
         }
+        $throttle->reset($throttleKey);
         $state['Attributes'] = $result;
         Auth\Source::completeAuth($state);
     }
