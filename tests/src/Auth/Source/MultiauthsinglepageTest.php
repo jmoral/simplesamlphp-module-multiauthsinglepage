@@ -9,6 +9,7 @@ use SimpleSAML\Configuration;
 use SimpleSAML\Error;
 use SimpleSAML\Module\core\Auth\UserPassBase;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage;
+use SimpleSAML\Module\multiauthsinglepage\LoginThrottle;
 use SimpleSAML\Session;
 
 /**
@@ -82,6 +83,33 @@ class MultiauthsinglepageTest extends TestCase
             $this->fail('Expected an ' . Error\Error::class);
         } catch (Error\Error $e) {
             $this->assertSame(Error\ErrorCodes::WRONGUSERPASS, $e->getErrorCode());
+        }
+    }
+
+
+    public function testHandleUserPassLoginThrottlesAfterThreeFailures(): void
+    {
+        $username = 'alice-' . uniqid();
+
+        for ($i = 0; $i < 4; $i++) {
+            try {
+                Multiauthsinglepage::handleUserPassLogin(
+                    $this->createStub(UserPassBase::class),
+                    [],
+                    $username,
+                    null,
+                );
+                $this->fail('Expected an ' . Error\Error::class);
+            } catch (Error\Error $e) {
+                $this->assertSame(Error\ErrorCodes::WRONGUSERPASS, $e->getErrorCode());
+            }
+        }
+
+        try {
+            Multiauthsinglepage::handleUserPassLogin($this->createStub(UserPassBase::class), [], $username, null);
+            $this->fail('Expected an ' . Error\Error::class);
+        } catch (Error\Error $e) {
+            $this->assertSame(LoginThrottle::ERROR_CODE, $e->getErrorCode());
         }
     }
 

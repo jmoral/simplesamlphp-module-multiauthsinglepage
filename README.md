@@ -204,10 +204,19 @@ username/password attempts for the same username, tracked per browser
 session: the first 3 failures are free, and from the 4th one onward a
 further attempt is only let through once the wait — 2s, 4s, 8s, ... capped
 at 300s, counted from the last failure — has elapsed. A successful login
-resets the counter. As with `accessControl`, a throttled attempt is
-indistinguishable from a plain wrong password to the user; the block is
-only visible in the server-side log (`error` level). See
-`\SimpleSAML\Module\multiauthsinglepage\LoginThrottle`.
+resets the counter.
+
+Unlike an `accessControl`-triggered block, a throttled attempt here **is**
+shown to the user: a generic "please wait a moment" message with tips
+(double-check the username and password, watch out for Caps Lock or the
+wrong keyboard layout), without an exact countdown or attempt count. This
+is safe to reveal because, unlike `accessControl`, this throttle does not
+depend on whether the username corresponds to a real account (so it cannot
+be used to enumerate valid usernames), and it doesn't expose anything about
+an external system's detection logic — a user can already tell locally
+that they've retried several times. See
+`\SimpleSAML\Module\multiauthsinglepage\LoginThrottle` and
+`LoginThrottle::ERROR_CODE`.
 
 Because the counter lives in the browser session, it does not survive the
 user starting a fresh session (e.g. a new browser or private window), so it

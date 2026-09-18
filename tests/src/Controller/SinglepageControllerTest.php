@@ -11,6 +11,7 @@ use SimpleSAML\Error;
 use SimpleSAML\Module\multiauthsinglepage\AccessChecker;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage;
 use SimpleSAML\Module\multiauthsinglepage\Controller;
+use SimpleSAML\Module\multiauthsinglepage\LoginThrottle;
 use SimpleSAML\Session;
 use SimpleSAML\Test\Module\multiauthsinglepage\fixtures\Source\FailAuthSource;
 use SimpleSAML\Test\Module\multiauthsinglepage\fixtures\Source\SuccessAuthSource;
@@ -236,8 +237,10 @@ class SinglepageControllerTest extends TestCase
      * After more than three consecutive failed attempts for the same username (in
      * the same browser session), LoginThrottle blocks further attempts locally
      * with an exponential backoff wait -- entirely independent of "accessControl".
-     * The blocked attempt never even reaches the authentication source: the login
-     * page shows the same generic WRONGUSERPASS either way.
+     * The blocked attempt never even reaches the authentication source, and (unlike
+     * an accessControl-triggered block) the login page shows a distinct "please
+     * wait" message instead of WRONGUSERPASS: this local throttle does not depend
+     * on a real username existing, so showing it does not enable enumeration.
      *
      * @return void
      */
@@ -277,10 +280,10 @@ class SinglepageControllerTest extends TestCase
         $this->assertSame(4, FailAuthSource::$callCount);
 
         // The fifth attempt is blocked by LoginThrottle before it ever reaches the
-        // source: the call count does not increase, yet the user sees no
-        // difference in the response.
+        // source: the call count does not increase, and the user sees the distinct
+        // "please wait" error code instead of WRONGUSERPASS.
         $response = $c->main($makeRequest());
-        $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
+        $this->assertSame(LoginThrottle::ERROR_CODE, $response->data['errorcode']);
         $this->assertSame(4, FailAuthSource::$callCount);
     }
 

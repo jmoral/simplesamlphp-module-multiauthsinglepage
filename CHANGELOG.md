@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- A `LoginThrottle`-triggered block (more than 3 consecutive failed
+  username/password attempts for the same username in the same browser
+  session) is now shown to the user, unlike an `accessControl`-triggered
+  block: a generic "please wait a moment" message with tips (check the
+  username/password, watch out for Caps Lock or the wrong keyboard layout),
+  with no exact countdown or attempt count. This is safe because, unlike
+  `accessControl`, `LoginThrottle` doesn't depend on the username
+  corresponding to a real account and doesn't expose anything about an
+  external system, so it cannot be used to enumerate accounts or fingerprint
+  another service's detection logic. New `LoginThrottle::ERROR_CODE`
+  (`MULTIAUTHTHROTTLED`) distinguishes it from `WRONGUSERPASS`, both in the
+  controller and in `templates/multiauthonepage.twig`.
+
 ## [2.1.0-rc.4] - 2026-09-18
 
 ### Added

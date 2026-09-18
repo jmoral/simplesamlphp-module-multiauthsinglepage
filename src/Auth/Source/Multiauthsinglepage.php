@@ -164,7 +164,7 @@ class Multiauthsinglepage extends SP
         $throttleKey = $username ?? 'desconocido';
         $throttle = new LoginThrottle();
         if ($throttle->isBlocked($throttleKey)) {
-            throw new Error\Error(Error\ErrorCodes::WRONGUSERPASS);
+            throw new Error\Error(LoginThrottle::ERROR_CODE);
         }
 
         if ($username === null || $pass === null) {

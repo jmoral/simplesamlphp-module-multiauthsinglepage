@@ -20,6 +20,15 @@ use SimpleSAML\Session;
  */
 class LoginThrottle
 {
+    /**
+     * The \SimpleSAML\Error\Error code thrown when this class blocks an attempt.
+     * Deliberately distinct from WRONGUSERPASS: unlike an accessControl-webservice
+     * block (which must stay indistinguishable from a wrong password), the login
+     * page shows the user a generic "please wait" message for this one -- see
+     * templates/multiauthonepage.twig. Keep both in sync if this changes.
+     */
+    public const string ERROR_CODE = 'MULTIAUTHTHROTTLED';
+
     private const string SESSION_DATATYPE = 'multiauthsinglepage:loginThrottle';
 
     /**
