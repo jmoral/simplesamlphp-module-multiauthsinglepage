@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0-rc.6] - 2026-09-18
+
 ### Fixed
 
 - `LoginThrottle::ERROR_CODE` (`MULTIAUTHTHROTTLED`) is now registered with
@@ -182,7 +184,8 @@ to `handleUserPassLogin()` and retyped.
 
 For releases up to and including v1.0.7, see the Git history and tags.
 
-[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.5...HEAD
+[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.6...HEAD
+[2.1.0-rc.6]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.5...v2.1.0-rc.6
 [2.1.0-rc.5]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.4...v2.1.0-rc.5
 [2.1.0-rc.4]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.3...v2.1.0-rc.4
 [2.1.0-rc.3]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.2...v2.1.0-rc.3
