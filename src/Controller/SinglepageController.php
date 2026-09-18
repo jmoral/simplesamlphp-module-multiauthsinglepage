@@ -13,6 +13,7 @@ use SimpleSAML\Module\core\Auth\UserPassBase;
 use SimpleSAML\Module\multiauthsinglepage\AccessBackoff;
 use SimpleSAML\Module\multiauthsinglepage\AccessChecker;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage as SourceMultiauthsinglepage;
+use SimpleSAML\Module\multiauthsinglepage\Error\ErrorCodes as ModuleErrorCodes;
 use SimpleSAML\Session;
 use SimpleSAML\XHTML\Template;
 use Symfony\Component\HttpFoundation\Request;
@@ -112,7 +113,7 @@ class SinglepageController
         }
         $t->data['sources'] = $this->describeSources($sources);
         $t->data['errorcode'] = $errorCode;
-        $t->data['errorcodes'] = (new Error\ErrorCodes())->getAllMessages();
+        $t->data['errorcodes'] = (new ModuleErrorCodes())->getAllMessages();
         $t->data['errorparams'] = $errorParams;
         $t->data['stateParams'] = ['AuthState' => $stateId];
         return $t;

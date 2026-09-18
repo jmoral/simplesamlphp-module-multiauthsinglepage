@@ -222,6 +222,17 @@ Because the counter lives in the browser session, it does not survive the
 user starting a fresh session (e.g. a new browser or private window), so it
 complements rather than replaces `accessControl` for a determined attacker.
 
+`LoginThrottle::ERROR_CODE` (`MULTIAUTHTHROTTLED`) is registered with a
+title and description via
+`\SimpleSAML\Module\multiauthsinglepage\Error\ErrorCodes` (see its
+`getCustomTitles()`/`getCustomDescriptions()`), on top of the special-cased
+message in `templates/multiauthonepage.twig`. This matters if you override
+that template from a theme: an overridden copy that does not (yet) special-case
+`MULTIAUTHTHROTTLED` and just does `errorcodes['title'][errorcode]`
+generically will still render a sensible message instead of a
+`Twig\Error\RuntimeError` ("Key ... does not exist"). Update your theme's
+copy to pick up the friendlier message without a generic "error" styling.
+
 ## License
 
 LGPL-2.1-or-later. See [LICENSE](LICENSE).

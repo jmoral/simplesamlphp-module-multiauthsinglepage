@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `LoginThrottle::ERROR_CODE` (`MULTIAUTHTHROTTLED`) is now registered with
+  a title and description in the `\SimpleSAML\Error\ErrorCodes` maps, via
+  the new `\SimpleSAML\Module\multiauthsinglepage\Error\ErrorCodes`. Without
+  this, any template rendering `errorcodes['title'][errorcode]` generically
+  -- including a theme's own copy of `multiauthonepage.twig` that predates
+  this error code -- crashed with `Twig\Error\RuntimeError: Key
+  "MULTIAUTHTHROTTLED" for sequence/mapping ... does not exist`, since the
+  key was never registered anywhere. `SinglepageController` now builds
+  `errorcodes` from this class instead of the base one.
+
 ## [2.1.0-rc.5] - 2026-09-18
 
 ### Changed
