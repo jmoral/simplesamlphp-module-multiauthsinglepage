@@ -12,6 +12,7 @@ use SimpleSAML\Module\multiauthsinglepage\AccessChecker;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage;
 use SimpleSAML\Module\multiauthsinglepage\Controller;
 use SimpleSAML\Module\multiauthsinglepage\LoginThrottle;
+use SimpleSAML\Module\multiauthsinglepage\RecaptchaVerifier;
 use SimpleSAML\Session;
 use SimpleSAML\Test\Module\multiauthsinglepage\fixtures\Source\FailAuthSource;
 use SimpleSAML\Test\Module\multiauthsinglepage\fixtures\Source\SuccessAuthSource;
@@ -360,5 +361,165 @@ class SinglepageControllerTest extends TestCase
         $response = $c->main($request);
 
         $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
+    }
+
+
+    /**
+     * Without a "recaptcha" config the page gets no reCAPTCHA data at all.
+     *
+     * @return void
+     */
+    public function testRecaptchaIsAbsentFromTheTemplateWhenNotConfigured(): void
+    {
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $request = Request::create(self::URI_LOGIN, 'GET', ['AuthState' => 'abc123']);
+
+        $c = new Controller\SinglepageController($this->config, $this->session);
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [Multiauthsinglepage::SOURCESID => ['success-as']];
+            }
+        });
+        $response = $c->main($request);
+
+        $this->assertNull($response->data['recaptcha']);
+    }
+
+
+    /**
+     * The page gets the site key and action from the state's "recaptcha" config,
+     * but never the secret key.
+     *
+     * @return void
+     */
+    public function testRecaptchaSiteKeyReachesTheTemplateButNotTheSecret(): void
+    {
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $request = Request::create(self::URI_LOGIN, 'GET', ['AuthState' => 'abc123']);
+
+        $c = new Controller\SinglepageController($this->config, $this->session);
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [
+                    Multiauthsinglepage::SOURCESID => ['success-as'],
+                    Multiauthsinglepage::RECAPTCHA => ['siteKey' => 'site-key', 'secretKey' => 'secret-key'],
+                ];
+            }
+        });
+        $response = $c->main($request);
+
+        $this->assertSame(['siteKey' => 'site-key', 'action' => 'login'], $response->data['recaptcha']);
+        $this->assertStringNotContainsString('secret-key', serialize($response->data));
+    }
+
+
+    /**
+     * In "enforce" mode, an attempt that fails reCAPTCHA is turned away with its own
+     * error code before the access-control webservice or the authentication source
+     * are even asked.
+     *
+     * @return void
+     */
+    public function testRecaptchaRejectionStopsTheAttemptBeforeAnythingElse(): void
+    {
+        FailAuthSource::$callCount = 0;
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $request = Request::create(
+            self::URI_LOGIN,
+            'POST',
+            [
+                'AuthState' => 'abc123',
+                'authsource' => 'fail-as',
+                'username' => 'alice',
+                'password' => 'secret',
+                RecaptchaVerifier::REQUEST_PARAM => 'bot-token',
+            ],
+        );
+
+        $c = new class ($this->config, $this->session) extends Controller\SinglepageController {
+            public ?string $tokenSeen = null;
+
+
+            protected function makeRecaptchaVerifier(array $config): RecaptchaVerifier
+            {
+                return new RecaptchaVerifier(
+                    ['siteKey' => 's', 'secretKey' => 'k', 'mode' => RecaptchaVerifier::MODE_ENFORCE],
+                    function (string $url, array $params): array {
+                        $this->tokenSeen = $params['response'];
+                        return ['success' => true, 'score' => 0.1, 'action' => 'login'];
+                    },
+                );
+            }
+
+
+            protected function makeAccessChecker(array $config): AccessChecker
+            {
+                return new AccessChecker(
+                    ['url' => 'https://webservice.example.org/endpoint'],
+                    function (): int {
+                        throw new \LogicException('accessControl must not be asked after a reCAPTCHA rejection');
+                    },
+                );
+            }
+        };
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [Multiauthsinglepage::SOURCESID => ['fail-as']];
+            }
+        });
+        $response = $c->main($request);
+
+        $this->assertSame(RecaptchaVerifier::ERROR_CODE, $response->data['errorcode']);
+        $this->assertSame('bot-token', $c->tokenSeen);
+        $this->assertSame(0, FailAuthSource::$callCount);
+    }
+
+
+    /**
+     * In "log" mode a failing reCAPTCHA is only logged: the attempt goes on to the
+     * authentication source as usual.
+     *
+     * @return void
+     */
+    public function testRecaptchaInLogModeLetsTheAttemptThrough(): void
+    {
+        FailAuthSource::$callCount = 0;
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $request = Request::create(
+            self::URI_LOGIN,
+            'POST',
+            [
+                'AuthState' => 'abc123',
+                'authsource' => 'fail-as',
+                'username' => 'bob-' . uniqid(),
+                'password' => 'secret',
+            ],
+        );
+
+        $c = new class ($this->config, $this->session) extends Controller\SinglepageController {
+            protected function makeRecaptchaVerifier(array $config): RecaptchaVerifier
+            {
+                return new RecaptchaVerifier(
+                    ['siteKey' => 's', 'secretKey' => 'k', 'mode' => RecaptchaVerifier::MODE_LOG],
+                    fn (): array => ['success' => true, 'score' => 0.1, 'action' => 'login'],
+                );
+            }
+        };
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [
+                    Multiauthsinglepage::SOURCESID => ['fail-as'],
+                    Multiauthsinglepage::AUTHID => 'singlepage-as',
+                ];
+            }
+        });
+        $response = $c->main($request);
+
+        $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
+        $this->assertSame(1, FailAuthSource::$callCount);
     }
 }

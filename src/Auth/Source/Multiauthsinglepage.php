@@ -49,6 +49,11 @@ class Multiauthsinglepage extends SP
      */
     public const string ACCESSCONTROL = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.AccessControl';
 
+    /**
+     * The key where the "recaptcha" config is saved in the state.
+     */
+    public const string RECAPTCHA = '\SimpleSAML\Module\multiauthsinglepage\Auth\Source\MultiAuth.Recaptcha';
+
 
     /**
      * @var string[] $sources
@@ -69,6 +74,13 @@ class Multiauthsinglepage extends SP
      */
     private array $accessControl;
 
+    /**
+     * The "recaptcha" config option; see \SimpleSAML\Module\multiauthsinglepage\RecaptchaVerifier.
+     *
+     * @var array<string, mixed>
+     */
+    private array $recaptcha;
+
 
     /**
      * @param array<mixed> $info
@@ -88,6 +100,7 @@ class Multiauthsinglepage extends SP
         $this->sources = $config['sources'];
         $this->accessLog = $config['accessLog'] ?? [];
         $this->accessControl = $config['accessControl'] ?? [];
+        $this->recaptcha = $config['recaptcha'] ?? [];
     }
 
 
@@ -107,6 +120,8 @@ class Multiauthsinglepage extends SP
         $state[self::ACCESSLOG] = $this->accessLog;
         // The access-control webservice config, so an attempt can be checked before it is made.
         $state[self::ACCESSCONTROL] = $this->accessControl;
+        // The reCAPTCHA config, so the login page can load it and an attempt can be verified.
+        $state[self::RECAPTCHA] = $this->recaptcha;
 
         $id = Auth\State::saveState($state, self::STAGEID);
         $url = Module::getModuleURL('multiauthsinglepage/login');

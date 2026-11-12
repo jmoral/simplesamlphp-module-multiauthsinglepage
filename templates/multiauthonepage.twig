@@ -1,6 +1,15 @@
 {% set pagetitle = 'Sign in'|trans %}
 {% extends "@core/base.twig" %}
 
+{% block postload %}
+    {%- if recaptcha %}
+    {# reCAPTCHA v3: the page must allow https://www.google.com and https://www.gstatic.com in its
+       Content-Security-Policy (script-src, frame-src, connect-src); see the README. #}
+    <script src="https://www.google.com/recaptcha/api.js?render={{ recaptcha.siteKey|url_encode }}" async defer></script>
+    <script src="{{ asset('js/recaptcha.js', 'multiauthsinglepage') }}"></script>
+    {%- endif %}
+{% endblock %}
+
 {% block content %}
     <h2>{{ pagetitle }}</h2>
 
@@ -29,7 +38,8 @@
     {%- endif %}
 
     {% for source in sources -%}
-    <form action="" method="post" class="pure-form pure-form-stacked" name="f_{{ source.id }}">
+    <form action="" method="post" class="pure-form pure-form-stacked" name="f_{{ source.id }}"
+        {%- if recaptcha and source.userpass %} data-recaptcha-sitekey="{{ recaptcha.siteKey }}" data-recaptcha-action="{{ recaptcha.action }}"{% endif %}>
         {% for key, value in stateParams -%}
         <input type="hidden" name="{{ key }}" value="{{ value }}">
         {% endfor -%}
@@ -43,6 +53,9 @@
 
         <label for="password-{{ source.id }}">{{ 'Password'|trans }}</label>
         <input id="password-{{ source.id }}" type="password" name="password" autocomplete="current-password">
+        {% if recaptcha -%}
+        <input type="hidden" name="g-recaptcha-response" value="">
+        {% endif -%}
         {% endif -%}
 
         <button type="submit" class="pure-button pure-button-primary">{{ 'Sign in'|trans }}</button>

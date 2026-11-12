@@ -97,9 +97,12 @@ of the box; override it in your theme to restyle it. The controller passes:
 * `errorcode` — error code of the last failed attempt, or `null`
 * `errorcodes` — `{ title: {...}, descr: {...} }` message maps for `errorcode`
 * `errorparams` — parameters for the error message translation
+* `recaptcha` — `{ siteKey, action }` when reCAPTCHA is configured (see
+  below), otherwise `null`. Never contains the secret key.
 
 Each form must submit `authsource` (and `username` / `password` when
-`userpass` is `true`) back to the same URL together with `stateParams`. Only
+`userpass` is `true`, plus `g-recaptcha-response` when `recaptcha` is set)
+back to the same URL together with `stateParams`. Only
 `authsource` values listed in the source's `sources` option are accepted.
 
 ## Registering failed login attempts
@@ -232,6 +235,83 @@ that template from a theme: an overridden copy that does not (yet) special-case
 generically will still render a sensible message instead of a
 `Twig\Error\RuntimeError` ("Key ... does not exist"). Update your theme's
 copy to pick up the friendlier message without a generic "error" styling.
+
+## Google reCAPTCHA v3
+
+Username/password attempts can additionally be checked with
+[reCAPTCHA v3](https://developers.google.com/recaptcha/docs/v3), which scores
+how likely an interaction is to come from a bot, without showing the user a
+challenge.
+
+```php
+'single-page' => [
+    'multiauthsinglepage:Multiauthsinglepage',
+    'entityID' => 'https://example.org/saml/sp/multiauthsinglepage',
+    'sources' => ['ldap', 'example-idp'],
+
+    'recaptcha' => [
+        'siteKey' => 'xxxxxxxx',    // required to enable
+        'secretKey' => 'xxxxxxxx',  // required to enable
+        'mode' => 'log',            // optional, 'log' (default) or 'enforce'
+        'minScore' => 0.5,          // optional, 0.0-1.0, default 0.5
+        'action' => 'login',        // optional, default 'login'
+        'hostnames' => [],          // optional, accepted hostnames; default: any
+        'failOpen' => true,         // optional, default true
+        'connectTimeout' => 2,      // optional, seconds, default 2
+        'timeout' => 3,             // optional, seconds, default 3
+    ],
+],
+```
+
+Disabled unless both `siteKey` and `secretKey` are configured. Only
+username/password sources are checked; redirect-style sources (a remote IdP,
+...) are not, since they authenticate the user themselves.
+
+**On the page.** When enabled, the controller passes `recaptcha` to the
+template, which loads `https://www.google.com/recaptcha/api.js?render=<siteKey>`
+and the module's `js/recaptcha.js`. A form opts in with
+`data-recaptcha-sitekey`, `data-recaptcha-action` and a hidden
+`<input name="g-recaptcha-response">`: on submit the script requests a fresh
+token (they expire after two minutes), puts it in that field and submits the
+form. Its listener sits on `window`, so it runs after any listener on the form
+itself — a theme's own validation that cancels the submission is respected.
+If reCAPTCHA cannot be loaded or does not answer within 5 seconds, the form
+is submitted without a token and the server decides.
+
+The default SimpleSAMLphp `Content-Security-Policy` blocks Google's script:
+add `https://www.google.com https://www.gstatic.com` to `script-src` and
+`https://www.google.com` to `frame-src` and `connect-src` (see
+`headers.security` in `config.php`). Google's terms also require telling the
+user the page is protected by reCAPTCHA: the default floating badge does so;
+if a theme hides it, it must show the equivalent text.
+
+**On the server.** Before the `accessControl` webservice or the authentication
+source are asked, the token is sent to Google's `siteverify` endpoint
+(together with the client's IP address). The attempt passes when Google
+reports `success`, the token was issued for the configured `action` (and one
+of the `hostnames`, if given), and its `score` is at least `minScore`. Every
+verification is logged on one line, e.g.:
+
+```text
+Multiauthsinglepage - recaptcha user=alice result=rejected reason=score score=0.3 action=login
+hostname=idp.example.org mode=enforce allowed=no ip=203.0.113.42
+```
+
+with `result` `ok` (`info` level), `rejected` (`warning`) or `unavailable`
+(`error`), so the threshold can be tuned from real traffic.
+
+* In `log` mode (the default) nothing is ever rejected: start here, watch the
+  scores, then switch to `enforce`.
+* In `enforce` mode a rejected attempt is never tried against the source, and
+  the page shows the `MULTIAUTHCAPTCHA` error (`RecaptchaVerifier::ERROR_CODE`,
+  registered in `Error\ErrorCodes`), asking the user to try again. A missing
+  token counts as rejected.
+* If Google cannot be reached, or rejects the `secretKey` (a configuration
+  problem, not the user's), the attempt is `unavailable` and, with
+  `failOpen` (the default), let through: an outage must never lock every user
+  out.
+
+See `\SimpleSAML\Module\multiauthsinglepage\RecaptchaVerifier`.
 
 ## License
 

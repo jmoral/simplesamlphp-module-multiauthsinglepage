@@ -14,6 +14,7 @@ use SimpleSAML\Module\multiauthsinglepage\AccessBackoff;
 use SimpleSAML\Module\multiauthsinglepage\AccessChecker;
 use SimpleSAML\Module\multiauthsinglepage\Auth\Source\Multiauthsinglepage as SourceMultiauthsinglepage;
 use SimpleSAML\Module\multiauthsinglepage\Error\ErrorCodes as ModuleErrorCodes;
+use SimpleSAML\Module\multiauthsinglepage\RecaptchaVerifier;
 use SimpleSAML\Session;
 use SimpleSAML\XHTML\Template;
 use Symfony\Component\HttpFoundation\Request;
@@ -77,6 +78,7 @@ class SinglepageController
         $sources = $state[SourceMultiauthsinglepage::SOURCESID] ?? [];
 
         $t = new Template($this->config, 'multiauthsinglepage:multiauthonepage.twig');
+        $recaptcha = $this->makeRecaptchaVerifier($state[SourceMultiauthsinglepage::RECAPTCHA] ?? []);
         $authsourceId = self::getParam($request, 'authsource');
         $errorCode = null;
         $errorParams = null;
@@ -94,6 +96,12 @@ class SinglepageController
                     // Username/password source: collect the credentials on this page.
                     $username = self::getParam($request, 'username');
                     $pass = self::getParam($request, 'password');
+                    // Checked first: it is the cheapest way to turn away a bot, and it
+                    // keeps bot traffic away from the access-control webservice.
+                    $token = self::getParam($request, RecaptchaVerifier::REQUEST_PARAM);
+                    if (!$recaptcha->isAllowed($token, $username)) {
+                        throw new Error\Error(RecaptchaVerifier::ERROR_CODE);
+                    }
                     if ($this->isAccessBlocked($state, $username)) {
                         // Deliberately indistinguishable from a wrong password: an attacker
                         // must not be able to tell they are being backed off from someone who
@@ -116,6 +124,10 @@ class SinglepageController
         $t->data['errorcodes'] = (new ModuleErrorCodes())->getAllMessages();
         $t->data['errorparams'] = $errorParams;
         $t->data['stateParams'] = ['AuthState' => $stateId];
+        // Only the public bits: the secret key must never reach the page.
+        $t->data['recaptcha'] = $recaptcha->isEnabled()
+            ? ['siteKey' => $recaptcha->getSiteKey(), 'action' => $recaptcha->getAction()]
+            : null;
         return $t;
     }
 
@@ -160,6 +172,15 @@ class SinglepageController
     protected function makeAccessChecker(array $config): AccessChecker
     {
         return new AccessChecker($config);
+    }
+
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    protected function makeRecaptchaVerifier(array $config): RecaptchaVerifier
+    {
+        return new RecaptchaVerifier($config);
     }
 
 

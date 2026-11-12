@@ -7,6 +7,7 @@ namespace SimpleSAML\Test\Module\multiauthsinglepage\Error;
 use PHPUnit\Framework\TestCase;
 use SimpleSAML\Module\multiauthsinglepage\Error\ErrorCodes;
 use SimpleSAML\Module\multiauthsinglepage\LoginThrottle;
+use SimpleSAML\Module\multiauthsinglepage\RecaptchaVerifier;
 
 /**
  * Tests for the module's custom SimpleSAML\Error\ErrorCodes registration.
@@ -27,6 +28,17 @@ class ErrorCodesTest extends TestCase
         $this->assertArrayHasKey(LoginThrottle::ERROR_CODE, $messages['descr']);
         $this->assertNotSame('', $messages['title'][LoginThrottle::ERROR_CODE]);
         $this->assertNotSame('', $messages['descr'][LoginThrottle::ERROR_CODE]);
+    }
+
+
+    public function testRecaptchaErrorCodeHasATitleAndDescription(): void
+    {
+        $messages = (new ErrorCodes())->getAllMessages();
+
+        $this->assertArrayHasKey(RecaptchaVerifier::ERROR_CODE, $messages['title']);
+        $this->assertArrayHasKey(RecaptchaVerifier::ERROR_CODE, $messages['descr']);
+        $this->assertNotSame('', $messages['title'][RecaptchaVerifier::ERROR_CODE]);
+        $this->assertNotSame('', $messages['descr'][RecaptchaVerifier::ERROR_CODE]);
     }
 
 

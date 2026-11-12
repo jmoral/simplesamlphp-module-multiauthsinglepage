@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional Google reCAPTCHA v3 check for username/password attempts,
+  configured with the new `recaptcha` authsource option and implemented in
+  `\SimpleSAML\Module\multiauthsinglepage\RecaptchaVerifier`. The token
+  is verified before the `accessControl` webservice or the authentication
+  source are asked. `log` mode (the default) only logs the outcome and score
+  of each attempt; `enforce` mode rejects failing attempts with the new
+  `MULTIAUTHCAPTCHA` error code, registered in `Error\ErrorCodes`. Failing to
+  reach Google or a rejected secret key fails open by default (`failOpen`).
+- `public/assets/js/recaptcha.js`, which requests the token on submit for any
+  form with `data-recaptcha-sitekey`, after the form's own listeners; and the
+  matching changes in `templates/multiauthonepage.twig`. The template now
+  gets a `recaptcha` variable (`{ siteKey, action }` or `null`).
+
 ## [2.1.0-rc.6] - 2026-09-18
 
 ### Fixed
