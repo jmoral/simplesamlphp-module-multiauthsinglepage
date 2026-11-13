@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0-rc.10] - 2026-11-13
+
+### Changed
+
+- reCAPTCHA: the client's IP address is sent to Google as `remoteip` only when
+  it is a public one. A private or reserved address (the client is behind a
+  NAT or a VPN) is not the one Google saw the browser come from, and users on
+  an internal network scored noticeably lower with it. The new `sendRemoteIp`
+  option (`public`, the default; `always`, the previous behaviour; `never`)
+  controls it.
+
 ## [2.1.0-rc.9] - 2026-11-13
 
 ### Added
@@ -230,7 +241,8 @@ to `handleUserPassLogin()` and retyped.
 
 For releases up to and including v1.0.7, see the Git history and tags.
 
-[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.9...HEAD
+[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.10...HEAD
+[2.1.0-rc.10]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.9...v2.1.0-rc.10
 [2.1.0-rc.9]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.8...v2.1.0-rc.9
 [2.1.0-rc.8]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.7...v2.1.0-rc.8
 [2.1.0-rc.7]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.6...v2.1.0-rc.7

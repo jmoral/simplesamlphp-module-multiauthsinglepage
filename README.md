@@ -261,6 +261,7 @@ challenge.
         'action' => 'login',        // optional, default 'login'
         'hostnames' => [],          // optional, accepted hostnames; default: any
         'failOpen' => true,         // optional, default true
+        'sendRemoteIp' => 'public', // optional, 'public' (default), 'always' or 'never'
         'exemptUsers' => [],        // optional, usernames never checked; default: none
         'connectTimeout' => 2,      // optional, seconds, default 2
         'timeout' => 3,             // optional, seconds, default 3
@@ -301,7 +302,7 @@ if a theme hides it, it must show the equivalent text.
 
 **On the server.** Before the `accessControl` webservice or the authentication
 source are asked, the token is sent to Google's `siteverify` endpoint
-(together with the client's IP address). The attempt passes when Google
+(together with the client's IP address, see `sendRemoteIp`). The attempt passes when Google
 reports `success`, the token was issued for the configured `action` (and one
 of the `hostnames`, if given), and its `score` is at least `minScore`. Every
 verification is logged on one line, e.g.:
@@ -324,6 +325,12 @@ with `result` `ok` (`info` level), `rejected` (`warning`), `unavailable`
   problem, not the user's), the attempt is `unavailable` and, with
   `failOpen` (the default), let through: an outage must never lock every user
   out.
+* `sendRemoteIp` (`public` by default) sends the client's IP address as
+  `remoteip` only when it is a public one. A private or reserved address
+  (192.168.x.x, 10.x.x.x, a VPN, ...) means the client is behind a NAT, so
+  Google saw the browser come from another, public address: sending the
+  private one adds nothing, and users on an internal network were seen to
+  score lower with it. `always` sends it anyway, `never` never sends it.
 * A username listed in `exemptUsers` (compared case-insensitively) is never
   checked: Google is not asked, and the attempt is logged as `result=exempt
   reason=exempt-user`. Meant for accounts used by automated tests, which a

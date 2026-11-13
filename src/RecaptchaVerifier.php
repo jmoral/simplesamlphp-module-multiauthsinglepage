@@ -25,6 +25,10 @@ use SimpleSAML\Logger;
  * problem, not something the user did), fails open by default ("failOpen"),
  * so an outage or a misconfiguration never locks every user out.
  *
+ * The client's IP address is sent to Google ("remoteip") only when it is public
+ * ("sendRemoteIp"): behind a NAT the login page sees a private address that
+ * never matches the one Google saw the browser come from.
+ *
  * Usernames listed in "exemptUsers" (e.g. accounts used by automated tests,
  * which a headless browser always makes look like a bot) skip the check: Google
  * is not asked and the attempt is logged as result=exempt. Such an account has
@@ -63,6 +67,15 @@ class RecaptchaVerifier
     public const string MODE_LOG = 'log';
 
     public const string MODE_ENFORCE = 'enforce';
+
+    /** "sendRemoteIp": send the client's IP address only when it is a public one (default). */
+    public const string REMOTE_IP_PUBLIC = 'public';
+
+    /** "sendRemoteIp": always send the client's IP address. */
+    public const string REMOTE_IP_ALWAYS = 'always';
+
+    /** "sendRemoteIp": never send the client's IP address. */
+    public const string REMOTE_IP_NEVER = 'never';
 
     public const string DEFAULT_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
 
@@ -120,6 +133,8 @@ class RecaptchaVerifier
      *      - minScore (float, optional, 0.0-1.0, default self::DEFAULT_MIN_SCORE)
      *      - action (string, optional, default self::DEFAULT_ACTION)
      *      - hostnames (string[], optional, accepted hostnames; default: any)
+     *      - sendRemoteIp (string, optional, self::REMOTE_IP_PUBLIC, self::REMOTE_IP_ALWAYS
+     *        or self::REMOTE_IP_NEVER, default self::REMOTE_IP_PUBLIC)
      *      - exemptUsers (string[], optional, usernames never checked, compared
      *        case-insensitively; default: none)
      *      - failOpen (bool, optional, default true)
@@ -278,8 +293,9 @@ class RecaptchaVerifier
             'secret' => (string) $this->config['secretKey'],
             'response' => $token,
         ];
-        if (!empty($_SERVER['REMOTE_ADDR'])) {
-            $params['remoteip'] = (string) $_SERVER['REMOTE_ADDR'];
+        $remoteIp = $this->remoteIpToSend();
+        if ($remoteIp !== null) {
+            $params['remoteip'] = $remoteIp;
         }
 
         try {
@@ -320,6 +336,32 @@ class RecaptchaVerifier
         }
 
         return [self::RESULT_OK, 'ok', $response];
+    }
+
+
+    /**
+     * The client's IP address to send to Google as "remoteip", if any (see "sendRemoteIp").
+     *
+     * By default only a public address is sent: a private or reserved one (the
+     * client is behind a NAT, a VPN, ...) is not the address Google saw the
+     * browser come from, and Google then uses the one it saw.
+     */
+    private function remoteIpToSend(): ?string
+    {
+        $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+        if ($ip === '') {
+            return null;
+        }
+
+        return match ($this->config['sendRemoteIp'] ?? self::REMOTE_IP_PUBLIC) {
+            self::REMOTE_IP_ALWAYS => $ip,
+            self::REMOTE_IP_NEVER => null,
+            default => filter_var(
+                $ip,
+                FILTER_VALIDATE_IP,
+                FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
+            ) === false ? null : $ip,
+        };
     }
 
 

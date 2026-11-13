@@ -297,4 +297,69 @@ class RecaptchaVerifierTest extends TestCase
 
         $this->assertFalse((new RecaptchaVerifier(self::ENFORCE))->isExempt('test-appcrue'));
     }
+
+
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, string> The parameters sent to Google.
+     */
+    private function sentParams(string $remoteAddr, array $config = []): array
+    {
+        $_SERVER['REMOTE_ADDR'] = $remoteAddr;
+        $sent = [];
+        $verifier = new RecaptchaVerifier(
+            $config + self::ENFORCE,
+            function (string $url, array $params) use (&$sent): array {
+                $sent = $params;
+                return self::GOOD_RESPONSE;
+            },
+        );
+        $this->assertTrue($verifier->isAllowed('token', 'alice'));
+        return $sent;
+    }
+
+
+    /**
+     * @return array<string, array{0: string}>
+     */
+    public static function privateAddresses(): array
+    {
+        return [
+            '192.168/16' => ['192.168.38.106'],
+            '10/8' => ['10.24.5.159'],
+            '172.16/12' => ['172.20.1.1'],
+            'loopback' => ['127.0.0.1'],
+            'link-local' => ['169.254.10.10'],
+            'IPv6 unique local' => ['fd12:3456:789a::1'],
+            'IPv6 loopback' => ['::1'],
+        ];
+    }
+
+
+    /**
+     * Behind a NAT the address is not the one Google saw the browser come from.
+     */
+    #[DataProvider('privateAddresses')]
+    public function testPrivateRemoteIpIsNotSentByDefault(string $ip): void
+    {
+        $this->assertArrayNotHasKey('remoteip', $this->sentParams($ip));
+    }
+
+
+    public function testPublicRemoteIpIsSentByDefault(): void
+    {
+        $this->assertSame('150.214.170.1', $this->sentParams('150.214.170.1')['remoteip']);
+        $this->assertSame('2001:720:1::1', $this->sentParams('2001:720:1::1')['remoteip']);
+    }
+
+
+    public function testSendRemoteIpAlwaysOrNever(): void
+    {
+        $always = ['sendRemoteIp' => RecaptchaVerifier::REMOTE_IP_ALWAYS];
+        $this->assertSame('192.168.38.106', $this->sentParams('192.168.38.106', $always)['remoteip']);
+
+        $never = ['sendRemoteIp' => RecaptchaVerifier::REMOTE_IP_NEVER];
+        $this->assertArrayNotHasKey('remoteip', $this->sentParams('203.0.113.42', $never));
+        $this->assertArrayNotHasKey('remoteip', $this->sentParams('150.214.170.1', $never));
+    }
 }
