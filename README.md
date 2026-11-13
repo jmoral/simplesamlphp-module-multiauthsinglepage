@@ -261,6 +261,7 @@ challenge.
         'action' => 'login',        // optional, default 'login'
         'hostnames' => [],          // optional, accepted hostnames; default: any
         'failOpen' => true,         // optional, default true
+        'exemptUsers' => [],        // optional, usernames never checked; default: none
         'connectTimeout' => 2,      // optional, seconds, default 2
         'timeout' => 3,             // optional, seconds, default 3
     ],
@@ -310,8 +311,8 @@ Multiauthsinglepage - recaptcha user=alice result=rejected reason=score score=0.
 hostname=idp.example.org mode=enforce allowed=no client=ok:240 ip=203.0.113.42
 ```
 
-with `result` `ok` (`info` level), `rejected` (`warning`) or `unavailable`
-(`error`), so the threshold can be tuned from real traffic.
+with `result` `ok` (`info` level), `rejected` (`warning`), `unavailable`
+(`error`) or `exempt` (`info`), so the threshold can be tuned from real traffic.
 
 * In `log` mode (the default) nothing is ever rejected: start here, watch the
   scores, then switch to `enforce`.
@@ -323,6 +324,12 @@ with `result` `ok` (`info` level), `rejected` (`warning`) or `unavailable`
   problem, not the user's), the attempt is `unavailable` and, with
   `failOpen` (the default), let through: an outage must never lock every user
   out.
+* A username listed in `exemptUsers` (compared case-insensitively) is never
+  checked: Google is not asked, and the attempt is logged as `result=exempt
+  reason=exempt-user`. Meant for accounts used by automated tests, which a
+  headless browser makes look like a bot. Such an account has no reCAPTCHA
+  protection at all: keep the list short, use test accounts only, and watch
+  the `exempt` lines.
 
 See `\SimpleSAML\Module\multiauthsinglepage\RecaptchaVerifier`.
 

@@ -263,4 +263,38 @@ class RecaptchaVerifierTest extends TestCase
             $this->assertSame('invalid', $verifier->getClientProblem());
         }
     }
+
+
+    public function testExemptUserIsAllowedWithoutAskingGoogle(): void
+    {
+        $verifier = new RecaptchaVerifier(
+            self::ENFORCE + ['exemptUsers' => ['test-appcrue', ' Test-VPNpas ']],
+            function (): array {
+                $this->fail('Google should not be asked about an exempt user.');
+            },
+        );
+
+        $this->assertTrue($verifier->isExempt('test-appcrue'));
+        $this->assertTrue($verifier->isExempt('TEST-APPCRUE'));
+        $this->assertTrue($verifier->isExempt(' test-vpnpas'));
+        $this->assertTrue($verifier->isAllowed(null, 'Test-AppCrue', 'no-script:5000'));
+        $this->assertNull($verifier->getClientProblem());
+        $this->assertTrue($verifier->isAllowed('token', 'test-vpnpas'));
+    }
+
+
+    public function testOnlyListedUsersAreExempt(): void
+    {
+        $verifier = new RecaptchaVerifier(
+            self::ENFORCE + ['exemptUsers' => ['test-appcrue', '', 42]],
+            self::respond(['score' => 0.1] + self::GOOD_RESPONSE),
+        );
+
+        foreach (['alice', 'test-appcrue2', 'test', '', null] as $username) {
+            $this->assertFalse($verifier->isExempt($username));
+            $this->assertFalse($verifier->isAllowed('token', $username));
+        }
+
+        $this->assertFalse((new RecaptchaVerifier(self::ENFORCE))->isExempt('test-appcrue'));
+    }
 }

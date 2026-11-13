@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0-rc.9] - 2026-11-13
+
+### Added
+
+- reCAPTCHA `exemptUsers` option: usernames (compared case-insensitively)
+  that are never checked, e.g. accounts used by automated tests. Google is not
+  asked and the attempt is logged as `result=exempt reason=exempt-user`.
+  `RecaptchaVerifier::isExempt()` tells whether a username is exempt.
+
 ## [2.1.0-rc.8] - 2026-11-13
 
 ### Added
@@ -221,7 +230,8 @@ to `handleUserPassLogin()` and retyped.
 
 For releases up to and including v1.0.7, see the Git history and tags.
 
-[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.8...HEAD
+[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.9...HEAD
+[2.1.0-rc.9]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.8...v2.1.0-rc.9
 [2.1.0-rc.8]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.7...v2.1.0-rc.8
 [2.1.0-rc.7]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.6...v2.1.0-rc.7
 [2.1.0-rc.6]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.5...v2.1.0-rc.6

@@ -24,6 +24,11 @@ use SimpleSAML\Logger;
  * A failure to reach Google, or a rejected "secretKey" (a configuration
  * problem, not something the user did), fails open by default ("failOpen"),
  * so an outage or a misconfiguration never locks every user out.
+ *
+ * Usernames listed in "exemptUsers" (e.g. accounts used by automated tests,
+ * which a headless browser always makes look like a bot) skip the check: Google
+ * is not asked and the attempt is logged as result=exempt. Such an account has
+ * no reCAPTCHA protection at all, so keep the list short.
  */
 class RecaptchaVerifier
 {
@@ -91,6 +96,9 @@ class RecaptchaVerifier
     /** Verification could not be done (Google unreachable, bad secret, ...). */
     private const string RESULT_UNAVAILABLE = 'unavailable';
 
+    /** The username is in "exemptUsers": not verified at all. */
+    private const string RESULT_EXEMPT = 'exempt';
+
 
     /**
      * @var callable(string $url, array<string, string> $params, array<string, mixed> $config): array<mixed>
@@ -112,6 +120,8 @@ class RecaptchaVerifier
      *      - minScore (float, optional, 0.0-1.0, default self::DEFAULT_MIN_SCORE)
      *      - action (string, optional, default self::DEFAULT_ACTION)
      *      - hostnames (string[], optional, accepted hostnames; default: any)
+     *      - exemptUsers (string[], optional, usernames never checked, compared
+     *        case-insensitively; default: none)
      *      - failOpen (bool, optional, default true)
      *      - verifyUrl (string, optional, default self::DEFAULT_VERIFY_URL)
      *      - connectTimeout (int, optional, seconds, default self::DEFAULT_CONNECT_TIMEOUT)
@@ -168,9 +178,29 @@ class RecaptchaVerifier
 
 
     /**
+     * Whether $username is in "exemptUsers" (case-insensitive, surrounding
+     * whitespace ignored, as the authentication sources do).
+     */
+    public function isExempt(?string $username): bool
+    {
+        $username = mb_strtolower(trim((string) $username));
+        if ($username === '') {
+            return false;
+        }
+        foreach ((array) ($this->config['exemptUsers'] ?? []) as $exempt) {
+            if (is_string($exempt) && mb_strtolower(trim($exempt)) === $username) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    /**
      * Whether a login attempt carrying $token may proceed.
      *
-     * Always true when disabled or in "log" mode; the outcome is logged either way.
+     * Always true when disabled, in "log" mode, or for an exempt username (see
+     * isExempt()); the outcome is logged either way.
      *
      * @param string|null $token The token the login page posted, if any.
      * @param string|null $username The username entered by the user, for the log.
@@ -183,8 +213,13 @@ class RecaptchaVerifier
             return true;
         }
 
-        [$result, $reason, $response] = $this->verify($token);
         $clientDiag = self::sanitizeClientDiag($clientDiag);
+        if ($this->isExempt($username)) {
+            $this->log($username, self::RESULT_EXEMPT, 'exempt-user', [], true, $clientDiag);
+            return true;
+        }
+
+        [$result, $reason, $response] = $this->verify($token);
 
         $allowed = match ($result) {
             self::RESULT_OK => true,
@@ -319,7 +354,7 @@ class RecaptchaVerifier
         );
 
         match ($result) {
-            self::RESULT_OK => Logger::info($message),
+            self::RESULT_OK, self::RESULT_EXEMPT => Logger::info($message),
             self::RESULT_UNAVAILABLE => Logger::error($message),
             default => Logger::warning($message),
         };
