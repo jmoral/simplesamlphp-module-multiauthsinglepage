@@ -14,6 +14,12 @@
  *
  * If reCAPTCHA cannot be loaded or does not answer in time, the form is
  * submitted without a token and the server decides (see RecaptchaVerifier).
+ *
+ * If the form also has a hidden <input name="g-recaptcha-diag">, it is filled
+ * with what happened, as "<outcome>:<milliseconds since submit>", outcome one
+ * of: ok, no-script (Google's script never became available: blocked by the
+ * browser, an extension or the network), timeout (no token in time) or error.
+ * The server logs it and uses it to word the error message.
  */
 "use strict";
 (function () {
@@ -45,6 +51,8 @@
         if (!field) {
             return;
         }
+        const diagField = form.querySelector('input[name="g-recaptcha-diag"]');
+        const start = Date.now();
 
         event.preventDefault();
         if (form.dataset.recaptchaPending === '1') {
@@ -53,27 +61,32 @@
         form.dataset.recaptchaPending = '1';
 
         let sent = false;
-        function send(token) {
+        function send(token, outcome) {
             if (sent) {
                 return;
             }
             sent = true;
             clearTimeout(timer);
             field.value = token || '';
+            if (diagField) {
+                diagField.value = (token ? 'ok' : outcome) + ':' + (Date.now() - start);
+            }
             // Not form.submit(): an input named "submit" would shadow it.
             HTMLFormElement.prototype.submit.call(form);
         }
-        const timer = setTimeout(function () { send(''); }, TIMEOUT_MS);
+        const timer = setTimeout(function () {
+            send('', window.grecaptcha && typeof window.grecaptcha.execute === 'function' ? 'timeout' : 'no-script');
+        }, TIMEOUT_MS);
 
         whenRecaptchaReady(function () {
             try {
                 window.grecaptcha
                     .execute(form.dataset.recaptchaSitekey, {action: form.dataset.recaptchaAction || 'login'})
-                    .then(send, function () { send(''); });
+                    .then(function (token) { send(token, 'error'); }, function () { send('', 'error'); });
             } catch (e) {
-                send('');
+                send('', 'error');
             }
-        }, function () { send(''); });
+        }, function () { send('', 'no-script'); });
     });
 
     // Coming back from the bfcache (the "back" button) must not leave a form stuck.

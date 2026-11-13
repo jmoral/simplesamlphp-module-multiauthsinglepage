@@ -30,6 +30,14 @@
             are entering the correct username and password -- watch out for an accidental Caps Lock or
             the wrong keyboard layout -- and try again in a few seconds.{% endtrans %}</p>
     </div>
+    {%- elseif errorcode == 'MULTIAUTHCAPTCHA' -%}
+    <div class="message-box warning">
+        <h3>{{ errorcodes['title'][errorcode]|trans }}</h3>
+        <p>{{ errorcodes['descr'][errorcode]|trans }}
+        {%- if recaptchaProblem == 'no-script' %}
+            {% trans %}Your browser or network seems to be blocking Google reCAPTCHA, which is needed to sign in: allow it for this site (for example, in your ad or tracker blocker) or use another browser or network.{% endtrans %}
+        {%- endif %}</p>
+    </div>
     {%- elseif errorcode -%}
     <div class="message-box error">
         <h3>{{ errorcodes['title'][errorcode]|trans(errorparams) }}</h3>
@@ -49,12 +57,14 @@
 
         {% if source.userpass -%}
         <label for="username-{{ source.id }}">{{ 'Username'|trans }}</label>
-        <input id="username-{{ source.id }}" type="text" name="username" autocomplete="username">
+        <input id="username-{{ source.id }}" type="text" name="username" autocomplete="username"
+            {%- if username %} value="{{ username }}"{% endif %}>
 
         <label for="password-{{ source.id }}">{{ 'Password'|trans }}</label>
         <input id="password-{{ source.id }}" type="password" name="password" autocomplete="current-password">
         {% if recaptcha -%}
         <input type="hidden" name="g-recaptcha-response" value="">
+        <input type="hidden" name="g-recaptcha-diag" value="">
         {% endif -%}
         {% endif -%}
 

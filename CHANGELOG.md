@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0-rc.8] - 2026-11-13
+
+### Added
+
+- reCAPTCHA browser-side diagnostic: `js/recaptcha.js` fills an optional
+  hidden `g-recaptcha-diag` field with `<outcome>:<milliseconds>` (`ok`,
+  `no-script`, `timeout`, `error`). `RecaptchaVerifier::isAllowed()` takes it
+  as a new optional argument, logs it as `client=` (only the expected shape,
+  anything else as `invalid`) and exposes the outcome of a rejected attempt
+  through `getClientProblem()`. The controller passes it to the template as
+  `recaptchaProblem`; the default template adds a hint when something blocks
+  Google (`no-script`).
+- After a failed attempt the controller passes the submitted `username` to
+  the template, and the default template fills it in again.
+
+### Changed
+
+- The `MULTIAUTHCAPTCHA` message now just asks the user to sign in again,
+  instead of suggesting to reload the page (which resubmits the same form).
+
 ## [2.1.0-rc.7] - 2026-11-12
 
 ### Added
@@ -201,7 +221,9 @@ to `handleUserPassLogin()` and retyped.
 
 For releases up to and including v1.0.7, see the Git history and tags.
 
-[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.6...HEAD
+[Unreleased]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.8...HEAD
+[2.1.0-rc.8]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.7...v2.1.0-rc.8
+[2.1.0-rc.7]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.6...v2.1.0-rc.7
 [2.1.0-rc.6]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.5...v2.1.0-rc.6
 [2.1.0-rc.5]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.4...v2.1.0-rc.5
 [2.1.0-rc.4]: https://github.com/jmoral/simplesamlphp-module-multiauthsinglepage/compare/v2.1.0-rc.3...v2.1.0-rc.4

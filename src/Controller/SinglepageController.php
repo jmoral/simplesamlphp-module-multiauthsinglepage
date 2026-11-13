@@ -82,6 +82,7 @@ class SinglepageController
         $authsourceId = self::getParam($request, 'authsource');
         $errorCode = null;
         $errorParams = null;
+        $username = null;
         if ($authsourceId !== null) {
             // attempt to log in
             try {
@@ -99,7 +100,8 @@ class SinglepageController
                     // Checked first: it is the cheapest way to turn away a bot, and it
                     // keeps bot traffic away from the access-control webservice.
                     $token = self::getParam($request, RecaptchaVerifier::REQUEST_PARAM);
-                    if (!$recaptcha->isAllowed($token, $username)) {
+                    $diag = self::getParam($request, RecaptchaVerifier::DIAG_PARAM);
+                    if (!$recaptcha->isAllowed($token, $username, $diag)) {
                         throw new Error\Error(RecaptchaVerifier::ERROR_CODE);
                     }
                     if ($this->isAccessBlocked($state, $username)) {
@@ -128,6 +130,14 @@ class SinglepageController
         $t->data['recaptcha'] = $recaptcha->isEnabled()
             ? ['siteKey' => $recaptcha->getSiteKey(), 'action' => $recaptcha->getAction()]
             : null;
+        // For a MULTIAUTHCAPTCHA error: what went wrong in the browser (a RecaptchaVerifier::CLIENT_*
+        // constant, e.g. "no-script" when something blocks Google), or null.
+        $t->data['recaptchaProblem'] = $errorCode === RecaptchaVerifier::ERROR_CODE
+            ? $recaptcha->getClientProblem()
+            : null;
+        // After a failed attempt the page shows the form again: keep the username so only the
+        // password has to be typed again.
+        $t->data['username'] = $errorCode !== null ? $username : null;
         return $t;
     }
 

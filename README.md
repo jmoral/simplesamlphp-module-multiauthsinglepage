@@ -99,6 +99,10 @@ of the box; override it in your theme to restyle it. The controller passes:
 * `errorparams` — parameters for the error message translation
 * `recaptcha` — `{ siteKey, action }` when reCAPTCHA is configured (see
   below), otherwise `null`. Never contains the secret key.
+* `recaptchaProblem` — for a `MULTIAUTHCAPTCHA` error, what the browser
+  reported (`no-script`, `timeout`, `error`), otherwise `null`
+* `username` — after a failed attempt, the username that was submitted, so
+  the form can be shown again with it filled in; otherwise `null`
 
 Each form must submit `authsource` (and `username` / `password` when
 `userpass` is `true`, plus `g-recaptcha-response` when `recaptcha` is set)
@@ -278,6 +282,15 @@ itself — a theme's own validation that cancels the submission is respected.
 If reCAPTCHA cannot be loaded or does not answer within 5 seconds, the form
 is submitted without a token and the server decides.
 
+If the form also has a hidden `<input name="g-recaptcha-diag">`, the script
+fills it with what happened in the browser, as `<outcome>:<milliseconds>`:
+`ok`, `no-script` (Google's script never became available: blocked by the
+browser, an extension or the network), `timeout` (no token in time) or
+`error`. The server logs it (`client=`) and, for a rejected attempt, passes
+the outcome to the template as `recaptchaProblem`, so the page can tell the
+user that something is blocking Google. Anything not in that shape is logged
+as `invalid`: the field is never trusted.
+
 The default SimpleSAMLphp `Content-Security-Policy` blocks Google's script:
 add `https://www.google.com https://www.gstatic.com` to `script-src` and
 `https://www.google.com` to `frame-src` and `connect-src` (see
@@ -294,7 +307,7 @@ verification is logged on one line, e.g.:
 
 ```text
 Multiauthsinglepage - recaptcha user=alice result=rejected reason=score score=0.3 action=login
-hostname=idp.example.org mode=enforce allowed=no ip=203.0.113.42
+hostname=idp.example.org mode=enforce allowed=no client=ok:240 ip=203.0.113.42
 ```
 
 with `result` `ok` (`info` level), `rejected` (`warning`) or `unavailable`

@@ -522,4 +522,84 @@ class SinglepageControllerTest extends TestCase
         $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
         $this->assertSame(1, FailAuthSource::$callCount);
     }
+
+
+    /**
+     * After a rejected reCAPTCHA attempt the page gets what the browser reported, so
+     * it can tell the user that something blocks Google, and keeps the username.
+     *
+     * @return void
+     */
+    public function testRecaptchaRejectionReportsClientProblemAndKeepsUsername(): void
+    {
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $request = Request::create(
+            self::URI_LOGIN,
+            'POST',
+            [
+                'AuthState' => 'abc123',
+                'authsource' => 'fail-as',
+                'username' => 'alice',
+                'password' => 'secret',
+                RecaptchaVerifier::REQUEST_PARAM => '',
+                RecaptchaVerifier::DIAG_PARAM => 'no-script:5003',
+            ],
+        );
+
+        $c = new class ($this->config, $this->session) extends Controller\SinglepageController {
+            protected function makeRecaptchaVerifier(array $config): RecaptchaVerifier
+            {
+                return new RecaptchaVerifier(
+                    ['siteKey' => 's', 'secretKey' => 'k', 'mode' => RecaptchaVerifier::MODE_ENFORCE],
+                );
+            }
+        };
+        $c->setAuthState(new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [Multiauthsinglepage::SOURCESID => ['fail-as']];
+            }
+        });
+        $response = $c->main($request);
+
+        $this->assertSame(RecaptchaVerifier::ERROR_CODE, $response->data['errorcode']);
+        $this->assertSame(RecaptchaVerifier::CLIENT_NO_SCRIPT, $response->data['recaptchaProblem']);
+        $this->assertSame('alice', $response->data['username']);
+    }
+
+
+    /**
+     * A wrong password also shows the form again with the username already filled in;
+     * the first, untouched page has no username.
+     *
+     * @return void
+     */
+    public function testUsernameIsKeptOnlyAfterAFailedAttempt(): void
+    {
+        $_SERVER['REQUEST_URI'] = self::URI_LOGIN;
+        $state = new class () extends Auth\State {
+            public static function loadState(string $id, string $stage, bool $allowMissing = false): ?array
+            {
+                return [
+                    Multiauthsinglepage::SOURCESID => ['fail-as'],
+                    Multiauthsinglepage::AUTHID => 'singlepage-as',
+                ];
+            }
+        };
+
+        $c = new Controller\SinglepageController($this->config, $this->session);
+        $c->setAuthState($state);
+        $response = $c->main(Request::create(self::URI_LOGIN, 'GET', ['AuthState' => 'abc123']));
+        $this->assertNull($response->data['username']);
+        $this->assertNull($response->data['recaptchaProblem']);
+
+        $response = $c->main(Request::create(self::URI_LOGIN, 'POST', [
+            'AuthState' => 'abc123',
+            'authsource' => 'fail-as',
+            'username' => 'carol-' . uniqid(),
+            'password' => 'wrong',
+        ]));
+        $this->assertSame('WRONGUSERPASS', $response->data['errorcode']);
+        $this->assertStringStartsWith('carol-', $response->data['username']);
+    }
 }

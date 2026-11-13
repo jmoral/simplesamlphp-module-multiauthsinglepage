@@ -218,4 +218,49 @@ class RecaptchaVerifierTest extends TestCase
         });
         $this->assertFalse($verifier->isAllowed(null, 'alice'));
     }
+
+
+    /**
+     * The browser's diagnostic tells the login page what went wrong, but only for a
+     * rejected attempt, and only its outcome part (without the milliseconds).
+     */
+    public function testClientProblemIsReportedForARejectedAttempt(): void
+    {
+        $verifier = new RecaptchaVerifier(self::ENFORCE);
+        $this->assertFalse($verifier->isAllowed(null, 'alice', 'no-script:5004'));
+        $this->assertSame(RecaptchaVerifier::CLIENT_NO_SCRIPT, $verifier->getClientProblem());
+
+        $this->assertFalse($verifier->isAllowed('', 'alice', 'timeout:5000'));
+        $this->assertSame(RecaptchaVerifier::CLIENT_TIMEOUT, $verifier->getClientProblem());
+    }
+
+
+    public function testNoClientProblemWhenAllowedOrUnreported(): void
+    {
+        $verifier = new RecaptchaVerifier(self::ENFORCE, self::respond(self::GOOD_RESPONSE));
+        $this->assertTrue($verifier->isAllowed('token', 'alice', 'ok:350'));
+        $this->assertNull($verifier->getClientProblem());
+
+        $this->assertFalse($verifier->isAllowed(null, 'alice'));
+        $this->assertNull($verifier->getClientProblem());
+
+        // in log mode nothing is rejected, so there is nothing to explain to the user
+        $verifier = new RecaptchaVerifier(self::KEYS);
+        $this->assertTrue($verifier->isAllowed(null, 'alice', 'no-script:5000'));
+        $this->assertNull($verifier->getClientProblem());
+    }
+
+
+    /**
+     * The diagnostic comes from the browser and ends up in the log: anything not in
+     * the expected "<outcome>[:<ms>]" shape is replaced, never logged as sent.
+     */
+    public function testUnexpectedClientDiagnosticIsNotTrusted(): void
+    {
+        $verifier = new RecaptchaVerifier(self::ENFORCE);
+        foreach (["no-script:5000\nFAKE LOG LINE", 'other', 'no-script:abc', str_repeat('x', 500)] as $diag) {
+            $this->assertFalse($verifier->isAllowed(null, 'alice', $diag));
+            $this->assertSame('invalid', $verifier->getClientProblem());
+        }
+    }
 }

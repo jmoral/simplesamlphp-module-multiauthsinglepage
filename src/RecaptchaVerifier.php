@@ -37,6 +37,24 @@ class RecaptchaVerifier
      */
     public const string REQUEST_PARAM = 'g-recaptcha-response';
 
+    /**
+     * The POST parameter js/recaptcha.js reports what happened in the browser in:
+     * "<outcome>:<milliseconds>", outcome one of the CLIENT_* constants below.
+     */
+    public const string DIAG_PARAM = 'g-recaptcha-diag';
+
+    /** The browser got a token. */
+    public const string CLIENT_OK = 'ok';
+
+    /** Google's script never became available: blocked by the browser, an extension or the network. */
+    public const string CLIENT_NO_SCRIPT = 'no-script';
+
+    /** The script was there, but no token arrived in time. */
+    public const string CLIENT_TIMEOUT = 'timeout';
+
+    /** Asking for a token failed. */
+    public const string CLIENT_ERROR = 'error';
+
     public const string MODE_LOG = 'log';
 
     public const string MODE_ENFORCE = 'enforce';
@@ -78,6 +96,12 @@ class RecaptchaVerifier
      * @var callable(string $url, array<string, string> $params, array<string, mixed> $config): array<mixed>
      */
     private $transport;
+
+    /**
+     * The browser-side outcome (a CLIENT_* constant) of the last attempt rejected by
+     * isAllowed(), when the browser reported one; see getClientProblem().
+     */
+    private ?string $clientProblem = null;
 
 
     /**
@@ -150,14 +174,17 @@ class RecaptchaVerifier
      *
      * @param string|null $token The token the login page posted, if any.
      * @param string|null $username The username entered by the user, for the log.
+     * @param string|null $clientDiag What js/recaptcha.js reported (DIAG_PARAM), if anything.
      */
-    public function isAllowed(?string $token, ?string $username): bool
+    public function isAllowed(?string $token, ?string $username, ?string $clientDiag = null): bool
     {
+        $this->clientProblem = null;
         if (!$this->isEnabled()) {
             return true;
         }
 
         [$result, $reason, $response] = $this->verify($token);
+        $clientDiag = self::sanitizeClientDiag($clientDiag);
 
         $allowed = match ($result) {
             self::RESULT_OK => true,
@@ -168,9 +195,38 @@ class RecaptchaVerifier
             $allowed = true;
         }
 
-        $this->log($username, $result, $reason, $response, $allowed);
+        $this->log($username, $result, $reason, $response, $allowed, $clientDiag);
+        if (!$allowed && $clientDiag !== null) {
+            $this->clientProblem = explode(':', $clientDiag, 2)[0];
+        }
 
         return $allowed;
+    }
+
+
+    /**
+     * For the last attempt isAllowed() rejected, what the browser reported (one of
+     * the CLIENT_* constants), so the login page can tell the user something more
+     * useful (e.g. CLIENT_NO_SCRIPT: something is blocking Google). Null when the
+     * attempt was allowed or the browser reported nothing usable.
+     */
+    public function getClientProblem(): ?string
+    {
+        return $this->clientProblem;
+    }
+
+
+    /**
+     * The browser-side diagnostic is untrusted input that ends up in the log: only
+     * "<known outcome>[:<milliseconds>]" is kept, anything else becomes "invalid".
+     */
+    private static function sanitizeClientDiag(?string $diag): ?string
+    {
+        if ($diag === null || $diag === '') {
+            return null;
+        }
+        $outcomes = implode('|', [self::CLIENT_OK, self::CLIENT_NO_SCRIPT, self::CLIENT_TIMEOUT, self::CLIENT_ERROR]);
+        return preg_match('/^(' . $outcomes . ')(:\d{1,7})?$/', $diag) === 1 ? $diag : 'invalid';
     }
 
 
@@ -238,12 +294,18 @@ class RecaptchaVerifier
      *
      * @param array<mixed> $response
      */
-    private function log(?string $username, string $result, string $reason, array $response, bool $allowed): void
-    {
+    private function log(
+        ?string $username,
+        string $result,
+        string $reason,
+        array $response,
+        bool $allowed,
+        ?string $clientDiag,
+    ): void {
         $score = $response['score'] ?? null;
         $message = sprintf(
             'Multiauthsinglepage - recaptcha user=%s result=%s reason=%s score=%s action=%s hostname=%s'
-            . ' mode=%s allowed=%s ip=%s',
+            . ' mode=%s allowed=%s client=%s ip=%s',
             $username ?? 'desconocido',
             $result,
             $reason,
@@ -252,6 +314,7 @@ class RecaptchaVerifier
             is_string($response['hostname'] ?? null) ? $response['hostname'] : '-',
             $this->isEnforcing() ? self::MODE_ENFORCE : self::MODE_LOG,
             $allowed ? 'yes' : 'no',
+            $clientDiag ?? '-',
             (string) ($_SERVER['REMOTE_ADDR'] ?? '-'),
         );
 

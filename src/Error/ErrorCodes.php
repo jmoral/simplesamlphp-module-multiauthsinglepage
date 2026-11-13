@@ -40,8 +40,7 @@ class ErrorCodes extends BaseErrorCodes
                 'the wrong keyboard layout -- and try again in a few seconds.',
             ),
             RecaptchaVerifier::ERROR_CODE => Translate::noop(
-                'We could not confirm that this sign-in attempt was made by a person. Please try again. ' .
-                'If the problem persists, reload the page, or try from another browser or network.',
+                'We could not confirm that this sign-in attempt was made by a person. Please sign in again.',
             ),
         ];
     }
